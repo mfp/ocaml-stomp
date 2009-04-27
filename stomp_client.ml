@@ -6,7 +6,11 @@ type received_msg = {
   msg_body : string
 }
 
-exception Stomp_error of string
+type stomp_error =
+    Connection_closed
+  | Protocol_error of (string * (string * string) list * string)
+
+exception Stomp_error of string * stomp_error
 
 module type S =
 sig
@@ -52,7 +56,7 @@ struct
     mutable c_transactions : S.t;
   }
 
-  let error fmt = Printf.kprintf (fun s -> fail (Stomp_error s)) fmt
+  let error err fmt = Printf.kprintf (fun s -> fail (Stomp_error (s, err))) fmt
 
   let establish_conn sockaddr =
     open_connection sockaddr >>= fun (c_in, c_out) ->
@@ -129,7 +133,7 @@ struct
     send_frame' conn "CONNECT" ["Login", login; "Password", password] "" >>= fun () ->
     receive_frame conn >>= function
         ("CONNECTED", _, _) -> return conn
-      | _ -> error "Stomp_client.connect"
+      | t  -> error (Protocol_error t) "Stomp_client.connect"
 
   let disconnect conn =
     if conn.c_closed then return ()
@@ -142,7 +146,7 @@ struct
     end
 
   let check_closed msg conn =
-    if conn.c_closed then error "Stomp_client.%s: closed connection" msg
+    if conn.c_closed then error Connection_closed "Stomp_client.%s: closed connection" msg
     else return ()
 
   let header_is k v l =
@@ -158,7 +162,7 @@ struct
     receive_frame conn >>= function
         ("RECEIPT", hs, _) when header_is "receipt-id" rid hs ->
           return ()
-      | _ -> error "Stomp_client.%s: no RECEIPT received." msg
+      | t -> error (Protocol_error t) "Stomp_client.%s: no RECEIPT received." msg
 
   let send_frame_with_receipt msg conn command hs body =
     check_closed msg conn >>= fun () ->
@@ -184,11 +188,12 @@ struct
   let rec receive_msg conn =
     check_closed "receive_msg" conn >>= fun () ->
     receive_frame conn >>= function
-        ("MESSAGE", hs, body) -> begin
+        ("MESSAGE", hs, body) as t -> begin
           try
             let msg_id = List.assoc "message-id" hs in
               return { msg_id = msg_id; msg_headers = hs; msg_body = body }
-          with Not_found -> error "Stomp_client.receive_msg: no message-id."
+          with Not_found ->
+            error (Protocol_error t) "Stomp_client.receive_msg: no message-id."
         end
       | _ -> receive_msg conn (* try to get another frame *)
 

@@ -4,7 +4,11 @@ type received_msg = {
   msg_body : string
 }
 
-exception Stomp_error of string
+type stomp_error =
+    Connection_closed
+  | Protocol_error of (string * (string * string) list * string)
+
+exception Stomp_error of string * stomp_error
 
 module type S =
 sig
