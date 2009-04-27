@@ -1,0 +1,50 @@
+
+# override in order to avoid "These file are targeted separately, but appear 
+# as effects of a single rule." warning.
+NATIVE_ENABLED = true
+
+if $(not $(defined-env TEST))
+       OCAMLFLAGS       += -g -dtypes
+       OCAML_LINK_FLAGS += -g
+       OCAMLOPTFLAGS    += -inline 10
+       export
+
+BYTE_ENABLED = true
+
+USE_OCAMLFIND = true
+
+OCAMLPACKS[] =
+	lwt
+	extlib
+
+if $(not $(OCAMLFIND_EXISTS))
+   eprintln(This project requires ocamlfind, but is was not found.)
+   eprintln(You need to install ocamlfind and run "omake --configure".)
+   exit 1
+
+OCAML_OTHER_LIBS[] =
+
+OCamlLibrary(stomp, concurrency_monad stomp_client)
+
+toplevel: stomp.cma
+	ocamlfind ocamlmktop -package $(concat \,, $(OCAMLPACKS)) \
+	    -linkall -linkpkg stomp.cma -o $@
+
+NATIVE_ENABLED = true
+
+.PHONY: clean
+
+DEFAULT = stomp.cma stomp.cmxa
+
+.DEFAULT: $(DEFAULT)
+
+.PHONY: all
+all: toplevel $(DEFAULT)
+
+.PHONY: doc
+doc:
+	ocamlfind ocamldoc -d doc -html -package $(concat \,, $(OCAMLPACKS)) \
+	    *.ml *.mli
+
+clean:
+	rm -f $(filter-proper-targets $(ls R, .)) *.annot *.s
