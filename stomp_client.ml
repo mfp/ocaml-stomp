@@ -87,7 +87,7 @@ struct
 
   let send_frame conn command headers body =
     let rid = receipt_id () in
-    let headers = ("receipt-id", rid) :: headers in
+    let headers = ("receipt", rid) :: headers in
       send_frame' conn command headers body >>= fun () ->
       return rid
 
