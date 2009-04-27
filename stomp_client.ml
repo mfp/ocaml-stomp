@@ -77,13 +77,12 @@ struct
     let i = ref 1 in fun () -> incr i; Printf.sprintf "transaction-%d" !i
 
   let send_frame' conn command headers body =
-    let oc ch c = output_char ch c in
     let ch = conn.c_out in
     output_string ch (command ^ "\n") >>= fun () ->
     output_headers ch headers >>= fun () ->
-    oc ch '\n' >>= fun () ->
+    output_char ch '\n' >>= fun () ->
     output_string ch body >>= fun () ->
-    oc ch '\000' >>= fun () ->
+    output_string ch "\000\n" >>= fun () ->
     flush ch
 
   let send_frame conn command headers body =
@@ -124,7 +123,11 @@ struct
       with Not_found -> (* read until \0 *)
         let b = Buffer.create 80 in
         let rec loop () = input_char ch >>= function
-            '\000' -> return (command, headers, Buffer.contents b)
+            '\000' ->
+              input_char ch >>= fun _ ->
+                (* skip last \n --- the specification is ambiguous, ActiveMQ
+                 * seems to be doing this. *)
+              return (command, headers, Buffer.contents b)
           | c -> Buffer.add_char b c; loop ()
         in loop ()
 
