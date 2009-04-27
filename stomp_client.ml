@@ -117,17 +117,18 @@ struct
         (* FIXME: is the exception captured in the monad if bad len? *)
         let body = String.make len '\000' in
           really_input ch body 0 len >>= fun () ->
-          input_char ch >>= fun _ -> (* FIXME: check that it's a \0? *)
+          input_line ch >>= fun _ -> (* FIXME: check that it's a \0\n ? *)
           return (command, headers, body)
       with Not_found -> (* read until \0 *)
         let b = Buffer.create 80 in
-        let rec loop () = input_char ch >>= function
-            '\000' ->
-              input_char ch >>= fun _ ->
-                (* skip last \n --- the specification is ambiguous, ActiveMQ
-                 * seems to be doing this. *)
-              return (command, headers, Buffer.contents b)
-          | c -> Buffer.add_char b c; loop ()
+        let rec loop () =
+          input_line ch >>= function
+              "" -> Buffer.add_char b '\n'; loop ()
+            | line when line.[String.length line - 1] = '\000' ->
+                Buffer.add_substring b line 0 (String.length line - 1);
+                return (command, headers, Buffer.contents b)
+            | line ->
+                Buffer.add_string b line; Buffer.add_char b '\n'; loop ()
         in loop ()
 
   let connect sockaddr ~login ~password =
