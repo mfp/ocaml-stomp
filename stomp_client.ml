@@ -69,7 +69,7 @@ struct
   let receipt_id =
     let i = ref 1 in fun () -> incr i; Printf.sprintf "receipt-%d" !i
 
-  let transaction_id = 
+  let transaction_id =
     let i = ref 1 in fun () -> incr i; Printf.sprintf "transaction-%d" !i
 
   let send_frame' conn command headers body =
@@ -89,7 +89,7 @@ struct
       return rid
 
   let send_frame_clength conn command headers body =
-    send_frame conn command 
+    send_frame conn command
       (("Content-length", string_of_int (String.length body)) :: headers) body
 
   let send_frame_clength' conn command headers body =
@@ -164,15 +164,22 @@ struct
     check_closed msg conn >>= fun () ->
     send_frame conn command hs body >>= check_receipt msg conn
 
-  let send conn ?transaction ~destination body =
-    check_closed "send" conn >>= fun () ->
-    let headers = ("Destination", destination) :: transaction_header transaction in
-    send_frame_clength conn "SEND" headers body >>= check_receipt "send" conn
-
   let send_no_ack conn ?transaction ~destination body =
-    check_closed "send" conn >>= fun () ->
+    check_closed "send_no_ack" conn >>= fun () ->
     let headers = ("Destination", destination) :: transaction_header transaction in
     send_frame_clength' conn "SEND" headers body
+
+  let send conn ?transaction ~destination body =
+    check_closed "send" conn >>= fun () ->
+      (* if given a transaction ID, don't try to get RECEIPT --- the message
+       * will only be saved on COMMIT anyway *)
+      match transaction with
+          None ->
+            let headers = ["Destination", destination] in
+              send_frame_clength conn "SEND" headers body >>= check_receipt "send" conn
+        | _ ->
+            let headers = ("Destination", destination) :: transaction_header transaction in
+              send_frame_clength' conn "SEND" headers body
 
   let rec receive_msg conn =
     check_closed "receive_msg" conn >>= fun () ->
