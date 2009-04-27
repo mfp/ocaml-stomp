@@ -87,17 +87,17 @@ struct
 
   let send_frame conn command headers body =
     let rid = receipt_id () in
-    let headers = ("Receipt-Id", rid) :: headers in
+    let headers = ("receipt-id", rid) :: headers in
       send_frame' conn command headers body >>= fun () ->
       return rid
 
   let send_frame_clength conn command headers body =
     send_frame conn command
-      (("Content-length", string_of_int (String.length body)) :: headers) body
+      (("content-length", string_of_int (String.length body)) :: headers) body
 
   let send_frame_clength' conn command headers body =
     send_frame' conn command
-      (("Content-length", string_of_int (String.length body)) :: headers) body
+      (("content-length", string_of_int (String.length body)) :: headers) body
 
   let read_headers ch =
     let rec loop acc = input_line ch >>= function
@@ -110,8 +110,7 @@ struct
   let receive_frame conn =
     let ch = conn.c_in in
       input_line ch >>= fun command ->
-      print_endline ("Got command: " ^ command);
-      let command = String.uppercase command in
+      let command = String.uppercase (String.strip command) in
       read_headers ch >>= fun headers ->
       try
         let len = int_of_string (List.assoc "content-length" headers) in
@@ -133,7 +132,7 @@ struct
 
   let connect sockaddr ~login ~password =
     establish_conn sockaddr >>= fun conn ->
-    send_frame' conn "CONNECT" ["Login", login; "Password", password] "" >>= fun () ->
+    send_frame' conn "CONNECT" ["login", login; "password", password] "" >>= fun () ->
     receive_frame conn >>= function
         ("CONNECTED", _, _) -> return conn
       | t  -> error (Protocol_error t) "Stomp_client.connect"
@@ -159,7 +158,7 @@ struct
 
   let transaction_header = function
       None -> []
-    | Some t -> ["Transaction", t]
+    | Some t -> ["transaction", t]
 
   let check_receipt msg conn rid =
     receive_frame conn >>= function
@@ -173,7 +172,7 @@ struct
 
   let send_no_ack conn ?transaction ~destination body =
     check_closed "send_no_ack" conn >>= fun () ->
-    let headers = ("Destination", destination) :: transaction_header transaction in
+    let headers = ("destination", destination) :: transaction_header transaction in
     send_frame_clength' conn "SEND" headers body
 
   let send conn ?transaction ~destination body =
@@ -182,10 +181,10 @@ struct
        * will only be saved on COMMIT anyway *)
       match transaction with
           None ->
-            let headers = ["Destination", destination] in
+            let headers = ["destination", destination] in
               send_frame_clength conn "SEND" headers body >>= check_receipt "send" conn
         | _ ->
-            let headers = ("Destination", destination) :: transaction_header transaction in
+            let headers = ("destination", destination) :: transaction_header transaction in
               send_frame_clength' conn "SEND" headers body
 
   let rec receive_msg conn =
@@ -201,35 +200,35 @@ struct
       | _ -> receive_msg conn (* try to get another frame *)
 
   let ack_msg conn ?transaction msg =
-    let headers = ("Message-Id", msg.msg_id) :: transaction_header transaction in
+    let headers = ("message-id", msg.msg_id) :: transaction_header transaction in
     send_frame_with_receipt "ack_msg" conn "ACK" headers ""
 
   let subscribe conn s =
     send_frame_with_receipt "subscribe" conn
-      "SUBSCRIBE" ["Destination", s; "Ack", "client"] ""
+      "SUBSCRIBE" ["destination", s; "ack", "client"] ""
 
   let unsubscribe conn s =
-    send_frame_with_receipt "subscribe" conn "UNSUBSCRIBE" ["Destination", s] ""
+    send_frame_with_receipt "subscribe" conn "UNSUBSCRIBE" ["destination", s] ""
 
   let unsubscribe conn s =
-    send_frame_with_receipt "unsubscribe" conn "UNSUBSCRIBE" ["Destination", s] ""
+    send_frame_with_receipt "unsubscribe" conn "UNSUBSCRIBE" ["destination", s] ""
 
   let transaction_begin conn =
     let tid = transaction_id () in
     send_frame_with_receipt "transaction_begin" conn
-      "BEGIN" ["Transaction", tid] "" >>= fun () ->
+      "BEGIN" ["transaction", tid] "" >>= fun () ->
         conn.c_transactions <- S.add tid (conn.c_transactions);
         return tid
 
   let transaction_commit conn tid =
     send_frame_with_receipt "transaction_commit" conn
-      "COMMIT" ["Transaction", tid] "" >>= fun () ->
+      "COMMIT" ["transaction", tid] "" >>= fun () ->
     conn.c_transactions <- S.remove tid (conn.c_transactions);
     return ()
 
   let transaction_abort conn tid =
     send_frame_with_receipt "transaction_abort" conn
-      "ABORT" ["Transaction", tid] "" >>= fun () ->
+      "ABORT" ["transaction", tid] "" >>= fun () ->
     conn.c_transactions <- S.remove tid (conn.c_transactions);
     return ()
 
