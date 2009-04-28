@@ -9,11 +9,14 @@ let port = ref 61613
 let address = ref "127.0.0.1"
 let num_msgs = ref 10000
 let queue = ref (sprintf "/queue/test-%d" (Random.int 100000000))
-let login = ref ""
-let passcode = ref ""
+let login = ref None
+let passcode = ref None
 let num_queues = ref None
 
 let msg = "Usage: test [options]"
+
+let set_some r x = r := Some x
+let set_some_f f r x = r := Some (f x)
 
 let args =
   Arg.align
@@ -22,14 +25,15 @@ let args =
       "-a", Set_string address, sprintf "ADDRESS Address (default: %s-0)" !address;
       "-n", Set_int num_msgs, sprintf "N Send N messages (default: %d)" !num_msgs;
       "-q", Set_string queue, sprintf "QUEUE Send to queue QUEUE (default: %s)" !queue;
-      "--queues", String (fun s -> num_queues := Some (int_of_string s)),
-        "N Send to N queues.";
+      "--queues", String (set_some_f int_of_string num_queues), "N Send to N queues.";
+      "--login", String (set_some login), "LOGIN Use the given login (default: none).";
+      "--passcode", String (set_some passcode), "PASSCODE Use the given passcode (default: none).";
     ]
 
-let () = 
+let () =
   Arg.parse args ignore msg;
-  let c = S.connect (Unix.ADDR_INET (Unix.inet_addr_of_string !address, !port))
-            ~login:!login ~passcode:!passcode in
+  let c = S.connect ?login:!login ?passcode:!passcode
+            (Unix.ADDR_INET (Unix.inet_addr_of_string !address, !port)) in
   let queue_name i = match !num_queues with
       None -> !queue
     | Some n -> String.concat "-" [!queue; string_of_int (i mod n)]
