@@ -39,5 +39,5 @@ sig
   val transaction_abort : connection -> transaction -> unit thread
 end
 
-module Make : functor (C : Concurrency_monad.CLIENT) ->
+module Make : functor (C : Concurrency_monad.THREAD) ->
   S with type 'a thread = 'a C.t

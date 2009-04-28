@@ -41,7 +41,7 @@ sig
   val transaction_abort : connection -> transaction -> unit thread
 end
 
-module Make(C : Concurrency_monad.CLIENT) =
+module Make(C : Concurrency_monad.THREAD) =
 struct
   module S = Set.Make(String)
   open C

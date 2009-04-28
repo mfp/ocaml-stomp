@@ -1,4 +1,4 @@
-module type CLIENT =
+module type THREAD =
 sig
   type 'a t
   val return : 'a -> 'a t
@@ -21,7 +21,7 @@ sig
   val close_out : out_channel -> unit t
 end
 
-module Posix_thread_client : CLIENT
+module Posix_thread : THREAD
   with type 'a t = 'a
    and type in_channel = Pervasives.in_channel
    and type out_channel = Pervasives.out_channel
@@ -47,7 +47,7 @@ module Posix_thread_client : CLIENT
   let catch f rescue = try f () with e -> rescue e
 end
 
-module Green_thread_client : CLIENT
+module Green_thread : THREAD
   with type 'a t = 'a Lwt.t
    and type in_channel = Lwt_chan.in_channel
    and type out_channel = Lwt_chan.out_channel 
