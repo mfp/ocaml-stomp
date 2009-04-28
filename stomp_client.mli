@@ -19,7 +19,7 @@ sig
 
   val connect : Unix.sockaddr -> login:string -> password:string -> connection thread
   val disconnect : connection -> unit thread
-  val send : connection -> ?transaction:transaction ->
+  val send : connection -> ?transaction:transaction -> ?persistent:bool ->
     destination:string -> string -> unit thread
   val send_no_ack : connection -> ?transaction:transaction ->
     destination:string -> string -> unit thread

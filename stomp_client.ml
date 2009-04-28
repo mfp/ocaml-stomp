@@ -21,7 +21,7 @@ sig
 
   val connect : Unix.sockaddr -> login:string -> password:string -> connection thread
   val disconnect : connection -> unit thread
-  val send : connection -> ?transaction:transaction ->
+  val send : connection -> ?transaction:transaction -> ?persistent:bool ->
     destination:string -> string -> unit thread
   val send_no_ack : connection -> ?transaction:transaction ->
     destination:string -> string -> unit thread
@@ -172,22 +172,23 @@ struct
     check_closed msg conn >>= fun () ->
     send_frame conn command hs body >>= check_receipt msg conn
 
+  let send_headers transaction persistent destination =
+    ("destination", destination) :: ("persistent", string_of_bool persistent) ::
+    transaction_header transaction
+
   let send_no_ack conn ?transaction ~destination body =
     check_closed "send_no_ack" conn >>= fun () ->
-    let headers = ("destination", destination) :: transaction_header transaction in
+    let headers = send_headers transaction false destination in
     send_frame_clength' conn "SEND" headers body
 
-  let send conn ?transaction ~destination body =
+  let send conn ?transaction ?(persistent = true) ~destination body =
     check_closed "send" conn >>= fun () ->
+    let headers = send_headers transaction persistent destination in
       (* if given a transaction ID, don't try to get RECEIPT --- the message
        * will only be saved on COMMIT anyway *)
       match transaction with
-          None ->
-            let headers = ["destination", destination] in
-              send_frame_clength conn "SEND" headers body >>= check_receipt "send" conn
-        | _ ->
-            let headers = ("destination", destination) :: transaction_header transaction in
-              send_frame_clength' conn "SEND" headers body
+          None -> send_frame_clength conn "SEND" headers body >>= check_receipt "send" conn
+        | _ -> send_frame_clength' conn "SEND" headers body
 
   let rec receive_msg conn =
     check_closed "receive_msg" conn >>= fun () ->
