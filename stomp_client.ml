@@ -12,7 +12,7 @@ type stomp_error =
 
 exception Stomp_error of string * stomp_error
 
-module type S =
+module type BASIC =
 sig
   type 'a thread
   type connection
@@ -20,19 +20,18 @@ sig
   type message_id
 
   val connect : ?login:string -> ?passcode:string -> ?eof_nl:bool ->
-    Unix.sockaddr -> connection thread
+    ?headers:(string * string) list -> Unix.sockaddr -> connection thread
   val disconnect : connection -> unit thread
   val send : connection -> ?transaction:transaction -> ?persistent:bool ->
-    destination:string -> string -> unit thread
+    destination:string -> ?headers:(string * string) list -> string -> unit thread
   val send_no_ack : connection -> ?transaction:transaction ->
-    destination:string -> string -> unit thread
+    destination:string -> ?headers:(string * string) list -> string -> unit thread
 
   val receive_msg : connection -> received_msg thread
-  val ack_msg : connection -> ?transaction:transaction ->
-    received_msg -> unit thread
+  val ack_msg : connection -> ?transaction:transaction -> received_msg -> unit thread
 
-  val subscribe : connection -> string -> unit thread
-  val unsubscribe : connection -> string -> unit thread
+  val subscribe : connection -> ?headers:(string * string) list -> string -> unit thread
+  val unsubscribe : connection -> ?headers:(string * string) list -> string -> unit thread
 
   val transaction_begin : connection -> transaction thread
   val transaction_commit : connection -> transaction -> unit thread
@@ -144,12 +143,12 @@ struct
           read_f ch (Buffer.create 80) >>= fun body ->
           return (command, headers, body)
 
-  let connect ?login ?passcode ?(eof_nl = true) sockaddr =
+  let connect ?login ?passcode ?(eof_nl = true) ?(headers = []) sockaddr =
     establish_conn sockaddr eof_nl >>= fun conn ->
     let headers = match login, passcode with
-        None, None -> []
-      | _ -> ["login", Option.default "" login;
-              "passcode", Option.default "" passcode] in
+        None, None -> headers
+      | _ -> ("login", Option.default "" login) ::
+             ("passcode", Option.default "" passcode) :: headers in
     send_frame' conn "CONNECT" headers "" >>= fun () ->
     receive_frame conn >>= function
         ("CONNECTED", _, _) -> return conn
@@ -193,14 +192,14 @@ struct
     ("destination", destination) :: ("persistent", string_of_bool persistent) ::
     transaction_header transaction
 
-  let send_no_ack conn ?transaction ~destination body =
+  let send_no_ack conn ?transaction ~destination ?(headers = []) body =
     check_closed "send_no_ack" conn >>= fun () ->
-    let headers = send_headers transaction false destination in
+    let headers = headers @ send_headers transaction false destination in
     send_frame_clength' conn "SEND" headers body
 
-  let send conn ?transaction ?(persistent = true) ~destination body =
+  let send conn ?transaction ?(persistent = true) ~destination ?(headers = []) body =
     check_closed "send" conn >>= fun () ->
-    let headers = send_headers transaction persistent destination in
+    let headers = headers @ send_headers transaction persistent destination in
       (* if given a transaction ID, don't try to get RECEIPT --- the message
        * will only be saved on COMMIT anyway *)
       match transaction with
@@ -223,15 +222,12 @@ struct
     let headers = ("message-id", msg.msg_id) :: transaction_header transaction in
     send_frame_with_receipt "ack_msg" conn "ACK" headers ""
 
-  let subscribe conn s =
+  let subscribe conn ?(headers = []) s =
     send_frame_with_receipt "subscribe" conn
-      "SUBSCRIBE" ["destination", s; "ack", "client"] ""
+      "SUBSCRIBE" (headers @ ["destination", s; "ack", "client"]) ""
 
-  let unsubscribe conn s =
-    send_frame_with_receipt "subscribe" conn "UNSUBSCRIBE" ["destination", s] ""
-
-  let unsubscribe conn s =
-    send_frame_with_receipt "unsubscribe" conn "UNSUBSCRIBE" ["destination", s] ""
+  let unsubscribe conn ?(headers = []) s =
+    send_frame_with_receipt "subscribe" conn "UNSUBSCRIBE" (headers @ ["destination", s]) ""
 
   let transaction_begin conn =
     let tid = transaction_id () in

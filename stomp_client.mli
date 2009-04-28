@@ -10,7 +10,7 @@ type stomp_error =
 
 exception Stomp_error of string * stomp_error
 
-module type S =
+module type BASIC =
 sig
   type 'a thread
   type connection
@@ -18,19 +18,18 @@ sig
   type message_id
 
   val connect : ?login:string -> ?passcode:string -> ?eof_nl:bool ->
-    Unix.sockaddr -> connection thread
+    ?headers:(string * string) list -> Unix.sockaddr -> connection thread
   val disconnect : connection -> unit thread
   val send : connection -> ?transaction:transaction -> ?persistent:bool ->
-    destination:string -> string -> unit thread
+    destination:string -> ?headers:(string * string) list -> string -> unit thread
   val send_no_ack : connection -> ?transaction:transaction ->
-    destination:string -> string -> unit thread
+    destination:string -> ?headers:(string * string) list -> string -> unit thread
 
   val receive_msg : connection -> received_msg thread
-  val ack_msg : connection -> ?transaction:transaction ->
-    received_msg -> unit thread
+  val ack_msg : connection -> ?transaction:transaction -> received_msg -> unit thread
 
-  val subscribe : connection -> string -> unit thread
-  val unsubscribe : connection -> string -> unit thread
+  val subscribe : connection -> ?headers:(string * string) list -> string -> unit thread
+  val unsubscribe : connection -> ?headers:(string * string) list -> string -> unit thread
 
   val transaction_begin : connection -> transaction thread
   val transaction_commit : connection -> transaction -> unit thread
@@ -40,4 +39,4 @@ sig
 end
 
 module Make : functor (C : Concurrency_monad.THREAD) ->
-  S with type 'a thread = 'a C.t
+  BASIC with type 'a thread = 'a C.t
