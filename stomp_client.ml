@@ -143,7 +143,8 @@ struct
     else begin
       send_frame' conn "DISCONNECT" [] "" >>= fun () ->
       close_in conn.c_in >>= fun () ->
-      close_out conn.c_out >>= fun () ->
+      (* closing one way can cause the other side to close this too *)
+      catch (fun () -> close_out conn.c_out) (fun e -> return ()) >>= fun () ->
       conn.c_closed <- true;
       return ()
     end

@@ -4,6 +4,7 @@ sig
   val return : 'a -> 'a t
   val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
   val bind : 'a t -> ('a -> 'b t) -> 'b t
+  val catch : (unit -> 'a t) -> (exn -> 'a t) -> 'a t
   val fail : exn -> 'a t
 
   type in_channel
@@ -43,6 +44,7 @@ module Posix_thread_client : CLIENT
   let really_input = really_input
   let close_in = close_in
   let close_out = close_out
+  let catch f rescue = try f () with e -> rescue e
 end
 
 module Green_thread_client : CLIENT
