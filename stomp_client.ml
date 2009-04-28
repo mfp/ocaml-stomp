@@ -19,7 +19,8 @@ sig
   type transaction
   type message_id
 
-  val connect : ?login:string -> ?passcode:string -> Unix.sockaddr -> connection thread
+  val connect : ?login:string -> ?passcode:string -> ?eof_nl:bool ->
+    Unix.sockaddr -> connection thread
   val disconnect : connection -> unit thread
   val send : connection -> ?transaction:transaction -> ?persistent:bool ->
     destination:string -> string -> unit thread
@@ -54,13 +55,15 @@ struct
     c_out : out_channel;
     mutable c_closed : bool;
     mutable c_transactions : S.t;
+    c_eof_nl : bool;
   }
 
   let error err fmt = Printf.kprintf (fun s -> fail (Stomp_error (s, err))) fmt
 
-  let establish_conn sockaddr =
+  let establish_conn sockaddr eof_nl =
     open_connection sockaddr >>= fun (c_in, c_out) ->
-    return { c_in = c_in; c_out = c_out; c_closed = false; c_transactions = S.empty }
+    return { c_in = c_in; c_out = c_out; c_closed = false; c_transactions = S.empty;
+             c_eof_nl = eof_nl; }
 
   let rec output_headers ch = function
       [] -> return ()
@@ -117,22 +120,32 @@ struct
         (* FIXME: is the exception captured in the monad if bad len? *)
         let body = String.make len '\000' in
           really_input ch body 0 len >>= fun () ->
-          input_line ch >>= fun _ -> (* FIXME: check that it's a \0\n ? *)
-          return (command, headers, body)
+            if conn.c_eof_nl then begin
+              input_line ch >>= fun _ -> (* FIXME: check that it's a \0\n ? *)
+              return (command, headers, body)
+            end else begin
+              input_char ch >>= fun _ -> (* FIXME: check that it's a \0 ? *)
+              return (command, headers, body)
+            end
       with Not_found -> (* read until \0 *)
-        let b = Buffer.create 80 in
-        let rec loop () =
+        let rec nl_loop ch b =
           input_line ch >>= function
-              "" -> Buffer.add_char b '\n'; loop ()
+              "" -> Buffer.add_char b '\n'; nl_loop ch b
             | line when line.[String.length line - 1] = '\000' ->
                 Buffer.add_substring b line 0 (String.length line - 1);
-                return (command, headers, Buffer.contents b)
+                return (Buffer.contents b)
             | line ->
-                Buffer.add_string b line; Buffer.add_char b '\n'; loop ()
-        in loop ()
+                Buffer.add_string b line; Buffer.add_char b '\n'; nl_loop ch b in
+        let rec no_nl_loop ch b =
+          input_char ch >>= function
+              '\000' -> return (Buffer.contents b)
+            | c -> Buffer.add_char b c; no_nl_loop ch b in
+        let read_f = if conn.c_eof_nl then nl_loop else no_nl_loop in
+          read_f ch (Buffer.create 80) >>= fun body ->
+          return (command, headers, body)
 
-  let connect ?login ?passcode sockaddr =
-    establish_conn sockaddr >>= fun conn ->
+  let connect ?login ?passcode ?(eof_nl = true) sockaddr =
+    establish_conn sockaddr eof_nl >>= fun conn ->
     let headers = match login, passcode with
         None, None -> []
       | _ -> ["login", Option.default "" login;

@@ -17,7 +17,8 @@ sig
   type transaction
   type message_id
 
-  val connect : ?login:string -> ?passcode:string -> Unix.sockaddr -> connection thread
+  val connect : ?login:string -> ?passcode:string -> ?eof_nl:bool ->
+    Unix.sockaddr -> connection thread
   val disconnect : connection -> unit thread
   val send : connection -> ?transaction:transaction -> ?persistent:bool ->
     destination:string -> string -> unit thread
