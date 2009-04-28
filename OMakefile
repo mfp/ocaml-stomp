@@ -32,6 +32,9 @@ toplevel: stomp.cma
 
 NATIVE_ENABLED = true
 
+OCAML_LIBS[] += stomp
+OCamlProgram(test_send, test_send)
+
 .PHONY: clean
 
 DEFAULT = stomp.cma stomp.cmxa

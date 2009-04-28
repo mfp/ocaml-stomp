@@ -15,3 +15,4 @@ OMake*.omc
 *.annot
 
 /toplevel
+/test_send
