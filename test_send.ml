@@ -10,7 +10,7 @@ let address = ref "127.0.0.1"
 let num_msgs = ref 10000
 let queue = ref (sprintf "/queue/test-%d" (Random.int 100000000))
 let login = ref ""
-let password = ref ""
+let passcode = ref ""
 let num_queues = ref None
 
 let msg = "Usage: test [options]"
@@ -29,7 +29,7 @@ let args =
 let () = 
   Arg.parse args ignore msg;
   let c = S.connect (Unix.ADDR_INET (Unix.inet_addr_of_string !address, !port))
-            ~login:!login ~password:!password in
+            ~login:!login ~passcode:!passcode in
   let queue_name i = match !num_queues with
       None -> !queue
     | Some n -> String.concat "-" [!queue; string_of_int (i mod n)]

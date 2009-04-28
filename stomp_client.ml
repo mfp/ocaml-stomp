@@ -19,7 +19,7 @@ sig
   type transaction
   type message_id
 
-  val connect : Unix.sockaddr -> login:string -> password:string -> connection thread
+  val connect : Unix.sockaddr -> login:string -> passcode:string -> connection thread
   val disconnect : connection -> unit thread
   val send : connection -> ?transaction:transaction -> ?persistent:bool ->
     destination:string -> string -> unit thread
@@ -131,9 +131,9 @@ struct
                 Buffer.add_string b line; Buffer.add_char b '\n'; loop ()
         in loop ()
 
-  let connect sockaddr ~login ~password =
+  let connect sockaddr ~login ~passcode =
     establish_conn sockaddr >>= fun conn ->
-    send_frame' conn "CONNECT" ["login", login; "password", password] "" >>= fun () ->
+    send_frame' conn "CONNECT" ["login", login; "passcode", passcode] "" >>= fun () ->
     receive_frame conn >>= function
         ("CONNECTED", _, _) -> return conn
       | t  -> error (Protocol_error t) "Stomp_client.connect"
