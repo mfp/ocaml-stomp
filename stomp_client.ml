@@ -273,7 +273,7 @@ struct
 
   let subscribe conn ?(headers = []) s =
     send_frame_with_receipt "subscribe" conn
-      "SUBSCRIBE" (headers @ ["destination", s; "ack", "client"]) ""
+      "SUBSCRIBE" (headers @ ["destination", s]) ""
 
   let unsubscribe conn ?(headers = []) s =
     send_frame_with_receipt "subscribe" conn "UNSUBSCRIBE" (headers @ ["destination", s]) ""
