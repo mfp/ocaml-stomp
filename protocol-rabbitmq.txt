@@ -1,0 +1,32 @@
+
+Extensions and conventions used by RabbitMQ's STOMP adapter
+===========================================================
+
+CONNECT
+-------
+
+* prefetch: num of messages that be be received without ACK
+            (use with ack: client)          OK
+
+SEND
+----
+* delivery-mode: 2 = persistent  OK
+   <- apparently not needed when the queue was subscribed to as NOT
+   auto-delete, and durable
+* send('x.x', 'first message', :exchange => 'amq.topic') ->
+  topic send
+
+SUBSCRIBE
+---------
+* auto-delete: true/false, whether to delete on disconnect(?)   OK
+* durable: true/false: whether to delete on server shutdown(?)  OK
+
+* exchange:"amq.topic", routing_key:"x.#"  destination:""
+  -> broadcast receiver
+
+* subscribe('', :id => subid, :exchange => 'amq.topic', :routing_key => "x.#")
+  ...
+  unsubscribe('', :id => subid)
+
+  -> how to unsubscribe from broadcast
+
