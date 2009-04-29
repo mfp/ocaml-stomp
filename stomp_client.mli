@@ -55,6 +55,9 @@ sig
   val send : connection -> ?transaction:transaction ->
     destination:string -> string -> unit thread
 
+  val send_no_ack : connection -> ?transaction:transaction ->
+    destination:string -> string -> unit thread
+
   val topic_send : connection -> ?transaction:transaction ->
     destination:string -> string -> unit thread
 
