@@ -21,8 +21,14 @@ SUBSCRIBE
 * auto-delete: true/false, whether to delete on disconnect(?)   OK
 * durable: true/false: whether to delete on server shutdown(?)  OK
 
+Subscribing to a topic:
+
 * exchange:"amq.topic", routing_key:"x.#"  destination:""
   -> broadcast receiver
+
+  Destination MUST NOT be the same as the routing key (otherwise, behaves as a
+  queue). Can use random destinations, must not reuse the same destination for
+  diff subscriptions (otherwise ERROR and conn closed by rabbitmq!).
 
 * subscribe('', :id => subid, :exchange => 'amq.topic', :routing_key => "x.#")
   ...

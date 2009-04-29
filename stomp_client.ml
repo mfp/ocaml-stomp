@@ -313,6 +313,31 @@ struct
   let transaction_abort_all = transaction_for_all transaction_abort
 end
 
+module Uuid =
+struct
+
+  let rng = Cryptokit.Random.device_rng "/dev/urandom"
+
+  type t = string
+
+  let create () =
+    let s = String.create 16 in
+      rng#random_bytes s 0 (String.length s);
+      s
+
+  let base64_to_base64url = function
+      '+' -> '-'
+    | '/' -> '_'
+    | c -> c
+
+  let to_base64url uuid =
+    let s = Cryptokit.transform_string (Cryptokit.Base64.encode_compact ()) uuid in
+      for i = 0 to String.length s - 1 do
+        s.[i] <- base64_to_base64url s.[i]
+      done;
+      s
+end
+
 module Make_rabbitmq(C : Concurrency_monad.THREAD) =
 struct
   module B = Make(C)
@@ -393,7 +418,7 @@ struct
       let dst = "/topic/" ^ topic in
         B.subscribe conn.c_conn
           ~headers:["exchange", "amq.topic"; "routing_key", dst; "id", id]
-          dst >>= fun () ->
+          (Uuid.to_base64url (Uuid.create ())) >>= fun () ->
         conn.c_topic_ids <- M.add topic id conn.c_topic_ids;
         return ()
 

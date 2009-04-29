@@ -16,6 +16,7 @@ USE_OCAMLFIND = true
 OCAMLPACKS[] =
 	lwt
 	extlib
+	cryptokit
 
 if $(not $(OCAMLFIND_EXISTS))
    eprintln(This project requires ocamlfind, but is was not found.)
