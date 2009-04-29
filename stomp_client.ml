@@ -64,6 +64,7 @@ sig
   val topic_send_no_ack : connection -> ?transaction:transaction ->
     destination:string -> string -> unit thread
 
+  val create_queue : connection -> string -> unit thread
   val subscribe_queue : connection -> string -> unit thread
   val unsubscribe_queue : connection -> string -> unit thread
   val subscribe_topic : connection -> string -> unit thread
@@ -323,6 +324,9 @@ struct
   type connection = {
     c_conn : B.connection;
     mutable c_topic_ids : string M.t;
+    c_addr : Unix.sockaddr;
+    c_login : string;
+    c_passcode : string;
   }
   type message_id = B.message_id
 
@@ -348,7 +352,10 @@ struct
       | Some n -> ["prefetch", string_of_int n]
     in
       B.connect ~headers ~login ~passcode ~eof_nl:false addr >>= fun conn ->
-      return { c_conn = conn; c_topic_ids = M.empty; }
+      return {
+        c_conn = conn; c_topic_ids = M.empty;
+        c_addr = addr; c_login = login; c_passcode = passcode;
+      }
 
   let send conn ?transaction ~destination body =
     B.send conn.c_conn ?transaction
@@ -370,6 +377,14 @@ struct
       ("/queue/" ^ queue)
 
   let unsubscribe_queue conn queue = B.unsubscribe conn.c_conn ("/queue/" ^ queue)
+
+  let create_queue conn queue =
+    (* subscribe to the queue in another connection, don't ACK the received
+     * msg, if any *)
+    connect conn.c_addr
+      ~prefetch:1 ~login:conn.c_login ~passcode:conn.c_passcode >>= fun c ->
+    subscribe_queue c queue >>= fun () ->
+    disconnect c
 
   let subscribe_topic conn topic =
     if M.mem topic conn.c_topic_ids then return ()

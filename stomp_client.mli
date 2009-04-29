@@ -61,6 +61,7 @@ sig
   val topic_send_no_ack : connection -> ?transaction:transaction ->
     destination:string -> string -> unit thread
 
+  val create_queue : connection -> string -> unit thread
   val subscribe_queue : connection -> string -> unit thread
   val unsubscribe_queue : connection -> string -> unit thread
   val subscribe_topic : connection -> string -> unit thread
