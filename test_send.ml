@@ -1,7 +1,7 @@
 open Arg
 open Printf
 
-module S = Stomp_client.Make(Concurrency_monad.Posix_thread)
+module S = Stomp_client.Make_generic(Concurrency_monad.Posix_thread)
 
 let () = Random.self_init ()
 

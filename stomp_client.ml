@@ -71,7 +71,7 @@ sig
   val unsubscribe_topic : connection -> string -> unit thread
 end
 
-module Make(C : Concurrency_monad.THREAD) =
+module Make_generic(C : Concurrency_monad.THREAD) =
 struct
   module S = Set.Make(String)
   open C
@@ -345,7 +345,7 @@ end
 
 module Make_rabbitmq(C : Concurrency_monad.THREAD) =
 struct
-  module B = Make(C)
+  module B = Make_generic(C)
   module M = Map.Make(String)
   open C
 

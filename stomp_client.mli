@@ -68,7 +68,7 @@ sig
   val unsubscribe_topic : connection -> string -> unit thread
 end
 
-module Make : functor (C : Concurrency_monad.THREAD) ->
+module Make_generic : functor (C : Concurrency_monad.THREAD) ->
   GENERIC with type 'a thread = 'a C.t
 
 module Make_rabbitmq : functor (C : Concurrency_monad.THREAD) ->
