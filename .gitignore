@@ -16,3 +16,4 @@ OMake*.omc
 
 /toplevel
 /test_send
+/test_send_rabbitmq
