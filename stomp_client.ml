@@ -52,7 +52,7 @@ sig
   include BASE
 
   val connect :
-    Unix.sockaddr -> ?prefetch:int -> login:string -> passcode:string ->
+    ?prefetch:int -> login:string -> passcode:string -> Unix.sockaddr ->
     connection thread
 
   val send : connection -> ?transaction:transaction ->
@@ -379,7 +379,7 @@ struct
 
   let disconnect = delegate B.disconnect
 
-  let connect addr ?prefetch ~login ~passcode =
+  let connect ?prefetch ~login ~passcode addr =
     let headers = match prefetch with
         None -> []
       | Some n -> ["prefetch", string_of_int n]

@@ -49,7 +49,7 @@ sig
   include BASE
 
   val connect :
-    Unix.sockaddr -> ?prefetch:int -> login:string -> passcode:string ->
+    ?prefetch:int -> login:string -> passcode:string -> Unix.sockaddr ->
     connection thread
 
   val send : connection -> ?transaction:transaction ->
