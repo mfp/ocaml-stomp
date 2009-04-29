@@ -52,13 +52,13 @@ sig
     Unix.sockaddr -> ?prefetch:int -> login:string -> passcode:string ->
     connection thread
 
-  val send : connection -> ?transaction:transaction -> ?persistent:bool ->
+  val send : connection -> ?transaction:transaction ->
     destination:string -> string -> unit thread
 
-  val topic_send : connection -> ?transaction:transaction -> ?persistent:bool ->
+  val topic_send : connection -> ?transaction:transaction ->
     destination:string -> string -> unit thread
 
-  val topic_send_no_ack : connection -> ?transaction:transaction -> ?persistent:bool ->
+  val topic_send_no_ack : connection -> ?transaction:transaction ->
     destination:string -> string -> unit thread
 
   val subscribe_queue : connection -> string -> unit thread
@@ -69,3 +69,6 @@ end
 
 module Make : functor (C : Concurrency_monad.THREAD) ->
   GENERIC with type 'a thread = 'a C.t
+
+module Make_rabbitmq : functor (C : Concurrency_monad.THREAD) ->
+  HIGH_LEVEL with type 'a thread = 'a C.t

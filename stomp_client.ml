@@ -1,4 +1,5 @@
 open ExtString
+open Printf
 
 type received_msg = {
   msg_id : string;
@@ -54,13 +55,13 @@ sig
     Unix.sockaddr -> ?prefetch:int -> login:string -> passcode:string ->
     connection thread
 
-  val send : connection -> ?transaction:transaction -> ?persistent:bool ->
+  val send : connection -> ?transaction:transaction ->
     destination:string -> string -> unit thread
 
-  val topic_send : connection -> ?transaction:transaction -> ?persistent:bool ->
+  val topic_send : connection -> ?transaction:transaction ->
     destination:string -> string -> unit thread
 
-  val topic_send_no_ack : connection -> ?transaction:transaction -> ?persistent:bool ->
+  val topic_send_no_ack : connection -> ?transaction:transaction ->
     destination:string -> string -> unit thread
 
   val subscribe_queue : connection -> string -> unit thread
@@ -309,4 +310,80 @@ struct
 
   let transaction_commit_all = transaction_for_all transaction_commit
   let transaction_abort_all = transaction_for_all transaction_abort
+end
+
+module Make_rabbitmq(C : Concurrency_monad.THREAD) =
+struct
+  module B = Make(C)
+  module M = Map.Make(String)
+  open C
+
+  type 'a thread = 'a C.t
+  type transaction = B.transaction
+  type connection = {
+    c_conn : B.connection;
+    mutable c_topic_ids : string M.t;
+  }
+  type message_id = B.message_id
+
+  let make_topic_id =
+    let i = ref 0 in fun () -> incr i; sprintf "topic-%d" !i
+
+  let delegate f t = f t.c_conn
+
+  let transaction_begin = delegate B.transaction_begin
+  let transaction_commit = delegate B.transaction_commit
+  let transaction_commit_all = delegate B.transaction_commit_all
+  let transaction_abort_all = delegate B.transaction_abort_all
+  let transaction_abort = delegate B.transaction_abort
+
+  let receive_msg = delegate B.receive_msg
+  let ack_msg = delegate B.ack_msg
+
+  let disconnect = delegate B.disconnect
+
+  let connect addr ?prefetch ~login ~passcode =
+    let headers = match prefetch with
+        None -> []
+      | Some n -> ["prefetch", string_of_int n]
+    in
+      B.connect ~headers ~login ~passcode ~eof_nl:false addr >>= fun conn ->
+      return { c_conn = conn; c_topic_ids = M.empty; }
+
+  let send conn ?transaction ~destination body =
+    B.send conn.c_conn ?transaction
+      ~destination:("/queue/" ^ destination) body
+
+  let topic_send conn ?transaction ~destination body =
+    B.send conn.c_conn ?transaction
+      ~headers:["exchange", "amq.topic"]
+      ~destination:("/topic/" ^ destination) body
+
+  let topic_send_no_ack conn ?transaction ~destination body =
+    B.send_no_ack conn.c_conn ?transaction
+      ~headers:["exchange", "amq.topic"]
+      ~destination:("/topic/" ^ destination) body
+
+  let subscribe_queue conn queue =
+    B.subscribe conn.c_conn
+      ~headers:["auto-delete", "false"; "durable", "true"] ("/queue/" ^ queue)
+
+  let unsubscribe_queue conn queue = B.unsubscribe conn.c_conn ("/queue/" ^ queue)
+
+  let subscribe_topic conn topic =
+    if M.mem topic conn.c_topic_ids then return ()
+    else
+      let id = make_topic_id () in
+      let dst = "/topic/" ^ topic in
+        B.subscribe conn.c_conn
+          ~headers:["exchange", "amq.topic"; "routing_key", dst; "id", id]
+          dst >>= fun () ->
+        conn.c_topic_ids <- M.add topic id conn.c_topic_ids;
+        return ()
+
+  let unsubscribe_topic conn topic =
+    match (try Some (M.find topic conn.c_topic_ids) with Not_found -> None) with
+        None -> return ()
+      | Some id ->
+          B.unsubscribe conn.c_conn ~headers:["id", id] ("/topic/" ^ topic)
 end
