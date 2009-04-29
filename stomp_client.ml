@@ -390,22 +390,27 @@ struct
         c_addr = addr; c_login = login; c_passcode = passcode;
       }
 
+  let normal_headers = ["content-type", "application/octet-stream"]
+  let topic_headers = ["exchange", "amq.topic"] @ normal_headers
+
   let send conn ?transaction ~destination body =
     B.send conn.c_conn ?transaction
+      ~headers:normal_headers
       ~destination:("/queue/" ^ destination) body
 
   let send_no_ack conn ?transaction ~destination body =
     B.send conn.c_conn ?transaction
+      ~headers:normal_headers
       ~destination:("/queue/" ^ destination) body
 
   let topic_send conn ?transaction ~destination body =
     B.send conn.c_conn ?transaction
-      ~headers:["exchange", "amq.topic"]
+      ~headers:topic_headers
       ~destination:("/topic/" ^ destination) body
 
   let topic_send_no_ack conn ?transaction ~destination body =
     B.send_no_ack conn.c_conn ?transaction
-      ~headers:["exchange", "amq.topic"]
+      ~headers:topic_headers
       ~destination:("/topic/" ^ destination) body
 
   let subscribe_queue conn queue =
