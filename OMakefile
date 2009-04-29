@@ -35,6 +35,10 @@ NATIVE_ENABLED = true
 
 OCAML_LIBS[] += stomp
 OCamlProgram(test_send, test_send)
+OCamlProgram(test_send_rabbitmq, test_send_rabbitmq)
+
+.PHONY: programs
+programs: test_send test_send_rabbitmq
 
 .PHONY: clean
 
