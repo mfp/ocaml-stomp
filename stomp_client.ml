@@ -84,6 +84,7 @@ struct
     mutable c_closed : bool;
     mutable c_transactions : S.t;
     c_eof_nl : bool;
+    c_pending_msgs : received_msg Queue.t;
   }
 
   let error err fmt = Printf.kprintf (fun s -> fail (Stomp_error (s, err))) fmt
@@ -91,7 +92,7 @@ struct
   let establish_conn sockaddr eof_nl =
     open_connection sockaddr >>= fun (c_in, c_out) ->
     return { c_in = c_in; c_out = c_out; c_closed = false; c_transactions = S.empty;
-             c_eof_nl = eof_nl; }
+             c_eof_nl = eof_nl; c_pending_msgs = Queue.create () }
 
   let rec output_headers ch = function
       [] -> return ()
@@ -172,6 +173,20 @@ struct
           read_f ch (Buffer.create 80) >>= fun body ->
           return (command, headers, body)
 
+  let rec receive_non_message_frame conn =
+    receive_frame conn >>= function
+        ("MESSAGE", hs, body) ->
+          begin
+            try
+              let msg_id = List.assoc "message-id" hs in
+                Queue.add
+                  { msg_id = msg_id; msg_headers = hs; msg_body = body }
+                  conn.c_pending_msgs
+            with Not_found -> (* no message-id, ignore *) ()
+          end;
+          receive_non_message_frame conn
+      | frame -> return frame
+
   let connect ?login ?passcode ?(eof_nl = true) ?(headers = []) sockaddr =
     establish_conn sockaddr eof_nl >>= fun conn ->
     let headers = match login, passcode with
@@ -179,7 +194,7 @@ struct
       | _ -> ("login", Option.default "" login) ::
              ("passcode", Option.default "" passcode) :: headers in
     send_frame' conn "CONNECT" headers "" >>= fun () ->
-    receive_frame conn >>= function
+    receive_non_message_frame conn >>= function
         ("CONNECTED", _, _) -> return conn
       | t  -> error (Protocol_error t) "Stomp_client.connect"
 
@@ -208,7 +223,7 @@ struct
     | Some t -> ["transaction", t]
 
   let check_receipt msg conn rid =
-    receive_frame conn >>= function
+    receive_non_message_frame conn >>= function
         ("RECEIPT", hs, _) when header_is "receipt-id" rid hs ->
           return ()
       | t -> error (Protocol_error t) "Stomp_client.%s: no RECEIPT received." msg
@@ -237,15 +252,18 @@ struct
 
   let rec receive_msg conn =
     check_closed "receive_msg" conn >>= fun () ->
-    receive_frame conn >>= function
-        ("MESSAGE", hs, body) as t -> begin
-          try
-            let msg_id = List.assoc "message-id" hs in
-              return { msg_id = msg_id; msg_headers = hs; msg_body = body }
-          with Not_found ->
-            error (Protocol_error t) "Stomp_client.receive_msg: no message-id."
-        end
-      | _ -> receive_msg conn (* try to get another frame *)
+    try
+      return (Queue.take conn.c_pending_msgs)
+    with Queue.Empty ->
+      receive_frame conn >>= function
+          ("MESSAGE", hs, body) as t -> begin
+            try
+              let msg_id = List.assoc "message-id" hs in
+                return { msg_id = msg_id; msg_headers = hs; msg_body = body }
+            with Not_found ->
+              error (Protocol_error t) "Stomp_client.receive_msg: no message-id."
+          end
+        | _ -> receive_msg conn (* try to get another frame *)
 
   let ack_msg conn ?transaction msg =
     let headers = ("message-id", msg.msg_id) :: transaction_header transaction in
