@@ -366,7 +366,8 @@ struct
 
   let subscribe_queue conn queue =
     B.subscribe conn.c_conn
-      ~headers:["auto-delete", "false"; "durable", "true"] ("/queue/" ^ queue)
+      ~headers:["auto-delete", "false"; "durable", "true"; "ack", "client"]
+      ("/queue/" ^ queue)
 
   let unsubscribe_queue conn queue = B.unsubscribe conn.c_conn ("/queue/" ^ queue)
 
