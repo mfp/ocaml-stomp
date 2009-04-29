@@ -141,9 +141,14 @@ struct
             loop ((String.lowercase k, String.strip v) :: acc)
     in loop []
 
+
+  let rec read_command ch = input_line ch >>= function
+      "" -> read_command ch
+    | l -> return l
+
   let receive_frame conn =
     let ch = conn.c_in in
-      input_line ch >>= fun command ->
+      read_command ch >>= fun command ->
       let command = String.uppercase (String.strip command) in
       read_headers ch >>= fun headers ->
       try
