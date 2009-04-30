@@ -1,5 +1,6 @@
 type received_msg = {
   msg_id : string;
+  msg_destination : string;
   msg_headers : (string * string) list;
   msg_body : string
 }

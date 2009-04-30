@@ -116,11 +116,12 @@ struct
         ("MESSAGE", hs, body) ->
           begin
             try
-              let msg_id = List.assoc "message-id" hs in
-                Queue.add
-                  { msg_id = msg_id; msg_headers = hs; msg_body = body }
-                  conn.c_pending_msgs
-            with Not_found -> (* no message-id, ignore *) ()
+              Queue.add
+                { msg_id = List.assoc "message-id" hs;
+                  msg_destination = List.assoc "destination" hs;
+                  msg_headers = hs; msg_body = body }
+                conn.c_pending_msgs
+            with Not_found -> (* no message-id or destination, ignore *) ()
           end;
           receive_non_message_frame conn
       | frame -> return frame
@@ -222,10 +223,13 @@ struct
       receive_frame conn >>= function
           ("MESSAGE", hs, body) as t -> begin
             try
-              let msg_id = List.assoc "message-id" hs in
-                return { msg_id = msg_id; msg_headers = hs; msg_body = body }
+              return { msg_id = List.assoc "message-id" hs;
+                       msg_destination = List.assoc "destination" hs;
+                       msg_headers = hs;
+                       msg_body = body; }
             with Not_found ->
-              error Retry (Protocol_error t) "Stomp_client.receive_msg: no message-id."
+              error Retry (Protocol_error t)
+                "Stomp_client.receive_msg: no message-id or destination."
           end
         | _ -> receive_msg conn (* try to get another frame *)
 
