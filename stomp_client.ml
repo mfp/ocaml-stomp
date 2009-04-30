@@ -156,14 +156,22 @@ struct
 
   let disconnect conn =
     if conn.c_closed then return ()
-    else begin
-      send_frame' "disconnect" conn "DISCONNECT" [] "" >>= fun () ->
-      close_in conn.c_in >>= fun () ->
-      (* closing one way can cause the other side to close this too *)
-      catch (fun () -> close_out conn.c_out) (fun e -> return ()) >>= fun () ->
-      conn.c_closed <- true;
-      return ()
-    end
+    else
+      catch
+        (fun () ->
+           send_frame' "disconnect" conn "DISCONNECT" [] "" >>= fun () ->
+           (* closing one way can cause the other side to close the other one too *)
+           catch
+             (fun () -> close_in conn.c_in >>= fun () -> close_out conn.c_out)
+             (* FIXME: Sys_error only? *)
+             (fun _ -> return ()) >>= fun () ->
+           conn.c_closed <- true;
+           return ())
+        (function
+             (* if there's a connection error, such as the other end closing
+              * before us, ignore it, as we wanted to close the conn anyway *)
+             Message_queue_error (_, _, Connection_error _) -> return ()
+           | e -> fail e)
 
   let check_closed msg conn =
     if conn.c_closed then
