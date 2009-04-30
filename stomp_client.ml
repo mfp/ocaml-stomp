@@ -378,13 +378,19 @@ struct
 
   let unsubscribe_queue conn queue = B.unsubscribe conn.c_conn ("/queue/" ^ queue)
 
-  let create_queue conn queue =
-    (* subscribe to the queue in another connection, don't ACK the received
-     * msg, if any *)
-    connect conn.c_addr
-      ~prefetch:1 ~login:conn.c_login ~passcode:conn.c_passcode >>= fun c ->
-    subscribe_queue c queue >>= fun () ->
-    disconnect c
+  let rec create_queue conn queue =
+    let rec try_to_create c =
+      (* subscribe to the queue in another connection, don't ACK the received
+       * msg, if any *)
+      catch
+        (fun () -> subscribe_queue c queue >>= fun () -> disconnect c)
+        (function
+             (* FIXME: limit number of attempts? *)
+           | Message_queue_error (Retry, _, _) -> try_to_create c
+           | Message_queue_error (Reconnect, _, _) -> create_queue conn queue
+           | e -> fail e)
+    in connect conn.c_addr ~prefetch:1
+         ~login:conn.c_login ~passcode:conn.c_passcode >>= try_to_create
 
   let subscribe_topic conn topic =
     if M.mem topic conn.c_topic_ids then return ()
