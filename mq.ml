@@ -206,4 +206,11 @@ struct
              * set of subscriptions, and won't be resubscribed to on reconn *)
             catch (fun () -> M.unsubscribe_topic c s) (fun _ -> return ())
   end
+
+  let make_tcp_message_queue ?prefetch ~login ~passcode addr port =
+    new message_queue ?prefetch ~login ~passcode
+      (Unix.ADDR_INET (Unix.inet_addr_of_string addr, port))
+
+  let make_unix_message_queue ?prefetch ~login ~passcode path =
+    new message_queue ?prefetch ~login ~passcode (Unix.ADDR_UNIX path)
 end
