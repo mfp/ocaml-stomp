@@ -5,9 +5,10 @@ type received_msg = {
 }
 
 type restartable = Retry | Reconnect | Abort
+type connection_error = Access_refused | Connection_refused | Closed
 
 type message_queue_error =
-    Connection_closed
+    Connection_error of connection_error
   | Protocol_error of (string * (string * string) list * string)
 
 exception Message_queue_error of restartable * string * message_queue_error

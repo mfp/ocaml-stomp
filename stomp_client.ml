@@ -23,11 +23,6 @@ struct
   let error restartable err fmt =
     Printf.kprintf (fun s -> fail (Message_queue_error (restartable, s, err))) fmt
 
-  let establish_conn sockaddr eof_nl =
-    open_connection sockaddr >>= fun (c_in, c_out) ->
-    return { c_in = c_in; c_out = c_out; c_closed = false; c_transactions = S.empty;
-             c_eof_nl = eof_nl; c_pending_msgs = Queue.create () }
-
   let rec output_headers ch = function
       [] -> return ()
     | (name, value) :: tl ->
@@ -126,8 +121,24 @@ struct
           receive_non_message_frame conn
       | frame -> return frame
 
+  let establish_conn msg sockaddr eof_nl =
+    catch
+      (fun () -> open_connection sockaddr)
+      (function
+           Unix.Unix_error (Unix.ECONNREFUSED, _, _) ->
+             error Abort (Connection_error Connection_refused) msg
+         | e -> fail e)
+    >>= fun (c_in, c_out) ->
+    return { c_in = c_in; c_out = c_out; c_closed = false; c_transactions = S.empty;
+             c_eof_nl = eof_nl; c_pending_msgs = Queue.create () }
+
+  let header_is k v l =
+    try
+      List.assoc k l = v
+    with Not_found -> false
+
   let connect ?login ?passcode ?(eof_nl = true) ?(headers = []) sockaddr =
-    establish_conn sockaddr eof_nl >>= fun conn ->
+    establish_conn "Stomp_client.connect" sockaddr eof_nl >>= fun conn ->
     let headers = match login, passcode with
         None, None -> headers
       | _ -> ("login", Option.default "" login) ::
@@ -135,6 +146,8 @@ struct
     send_frame' conn "CONNECT" headers "" >>= fun () ->
     receive_non_message_frame conn >>= function
         ("CONNECTED", _, _) -> return conn
+      | ("ERROR", hs, _) when header_is "message" "access_refused" hs ->
+          error Abort (Connection_error Access_refused) "Stomp_client.connect"
       | t  -> error Reconnect (Protocol_error t) "Stomp_client.connect"
 
   let disconnect conn =
@@ -150,13 +163,9 @@ struct
 
   let check_closed msg conn =
     if conn.c_closed then
-      error Reconnect Connection_closed "Stomp_client.%s: closed connection" msg
+      error Reconnect (Connection_error Closed)
+        "Stomp_client.%s: closed connection" msg
     else return ()
-
-  let header_is k v l =
-    try
-      List.assoc k l = v
-    with Not_found -> false
 
   let transaction_header = function
       None -> []
