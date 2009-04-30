@@ -14,15 +14,15 @@ let passcode = ref ""
 let is_topic = ref false
 let use_transaction = ref false
 
-let msg = "Usage: test_send_rabbitmq [options]"
+let msg = "Usage: test_send_rabbitmq -n N [options]"
 
 let args =
   Arg.align
     [
-      "-p", Set_int port, sprintf "PORT Port (default: %d)" !port;
+      "-n", Set_int num_msgs, sprintf "N Send N messages.";
       "-a", Set_string address, sprintf "ADDRESS Address (default: %s-0)" !address;
-      "-n", Set_int num_msgs, sprintf "N Send N messages (default: %d)" !num_msgs;
       "-d", Set_string dest, sprintf "DEST Send to DEST (default: %s)" !dest;
+      "-p", Set_int port, sprintf "PORT Port (default: %d)" !port;
       "--login", Set_string login, "LOGIN Use the given login (default: none).";
       "--passcode", Set_string passcode, "PASSCODE Use the given passcode (default: none).";
       "--topic", Set is_topic, " Send as a topic message (default: no).";
@@ -31,6 +31,10 @@ let args =
 
 let () =
   Arg.parse args ignore msg;
+  if !num_msgs <= 0 then begin
+    Arg.usage args msg;
+    exit 1;
+  end;
   let c = S.connect !login !passcode
             (Unix.ADDR_INET (Unix.inet_addr_of_string !address, !port)) in
   let transaction = match !use_transaction with
