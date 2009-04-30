@@ -76,7 +76,7 @@ sig
 end
 
 module Make
-  (C : Concurrency_monad.THREAD)
+  (C : Mq_concurrency.THREAD)
   (M : HIGH_LEVEL with type 'a thread = 'a C.t) =
 struct
   open C

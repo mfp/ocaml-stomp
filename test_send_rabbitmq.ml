@@ -1,7 +1,7 @@
 open Arg
 open Printf
 
-module S = Stomp_client.Make_rabbitmq(Concurrency_monad.Posix_thread)
+module S = Mq_stomp_client.Make_rabbitmq(Mq_concurrency.Posix_thread)
 
 let () = Random.self_init ()
 

@@ -26,9 +26,9 @@ if $(not $(OCAMLFIND_EXISTS))
 OCAML_OTHER_LIBS[] =
 
 LIBOBJS[] =
-	concurrency_monad
-	message_queue
-	stomp_client
+	mq
+	mq_concurrency
+	mq_stomp_client
 
 OCamlLibrary(stomp, $(LIBOBJS))
 

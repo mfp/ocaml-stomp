@@ -1,8 +1,8 @@
 open ExtString
 open Printf
-open Message_queue
+open Mq
 
-module Make_generic(C : Concurrency_monad.THREAD) =
+module Make_generic(C : Mq_concurrency.THREAD) =
 struct
   module S = Set.Make(String)
   open C
@@ -304,7 +304,7 @@ struct
       s
 end
 
-module Make_rabbitmq(C : Concurrency_monad.THREAD) =
+module Make_rabbitmq(C : Mq_concurrency.THREAD) =
 struct
   module B = Make_generic(C)
   module M = Map.Make(String)
