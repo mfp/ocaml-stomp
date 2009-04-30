@@ -111,8 +111,17 @@ struct
           read_f ch (Buffer.create 80) >>= fun body ->
           return (command, headers, body)
 
-  let rec receive_non_message_frame conn =
-    receive_frame conn >>= function
+  (* add EOF handling *)
+  let receive_frame msg conn =
+    catch
+      (fun () -> receive_frame conn)
+      (function
+           Sys_error _ | End_of_file ->
+               error Reconnect (Connection_error Closed) "Stomp_client.%s" msg
+         | e -> fail e)
+
+  let rec receive_non_message_frame msg conn =
+    receive_frame msg conn >>= function
         ("MESSAGE", hs, body) ->
           begin
             try
@@ -123,7 +132,7 @@ struct
                 conn.c_pending_msgs
             with Not_found -> (* no message-id or destination, ignore *) ()
           end;
-          receive_non_message_frame conn
+          receive_non_message_frame msg conn
       | frame -> return frame
 
   let establish_conn msg sockaddr eof_nl =
@@ -149,7 +158,7 @@ struct
       | _ -> ("login", Option.default "" login) ::
              ("passcode", Option.default "" passcode) :: headers in
     send_frame' "connect" conn "CONNECT" headers "" >>= fun () ->
-    receive_non_message_frame conn >>= function
+    receive_non_message_frame "connect" conn >>= function
         ("CONNECTED", _, _) -> return conn
       | ("ERROR", hs, _) when header_is "message" "access_refused" hs ->
           error Abort (Connection_error Access_refused) "Stomp_client.connect"
@@ -185,7 +194,7 @@ struct
     | Some t -> ["transaction", t]
 
   let check_receipt msg conn rid =
-    receive_non_message_frame conn >>= function
+    receive_non_message_frame msg conn >>= function
         ("RECEIPT", hs, _) when header_is "receipt-id" rid hs ->
           return ()
       | t -> error Reconnect (Protocol_error t) "Stomp_client.%s: no RECEIPT received." msg
@@ -220,7 +229,7 @@ struct
     try
       return (Queue.take conn.c_pending_msgs)
     with Queue.Empty ->
-      receive_frame conn >>= function
+      receive_frame "receive_msg" conn >>= function
           ("MESSAGE", hs, body) as t -> begin
             try
               return { msg_id = List.assoc "message-id" hs;
