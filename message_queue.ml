@@ -4,11 +4,13 @@ type received_msg = {
   msg_body : string
 }
 
+type restartable = Retry | Reconnect | Abort
+
 type message_queue_error =
     Connection_closed
   | Protocol_error of (string * (string * string) list * string)
 
-exception Message_queue_error of string * message_queue_error
+exception Message_queue_error of restartable * string * message_queue_error
 
 module type BASE =
 sig

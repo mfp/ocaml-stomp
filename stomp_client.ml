@@ -20,8 +20,8 @@ struct
     c_pending_msgs : received_msg Queue.t;
   }
 
-  let error err fmt =
-    Printf.kprintf (fun s -> fail (Message_queue_error (s, err))) fmt
+  let error restartable err fmt =
+    Printf.kprintf (fun s -> fail (Message_queue_error (restartable, s, err))) fmt
 
   let establish_conn sockaddr eof_nl =
     open_connection sockaddr >>= fun (c_in, c_out) ->
@@ -135,7 +135,7 @@ struct
     send_frame' conn "CONNECT" headers "" >>= fun () ->
     receive_non_message_frame conn >>= function
         ("CONNECTED", _, _) -> return conn
-      | t  -> error (Protocol_error t) "Stomp_client.connect"
+      | t  -> error Reconnect (Protocol_error t) "Stomp_client.connect"
 
   let disconnect conn =
     if conn.c_closed then return ()
@@ -149,7 +149,8 @@ struct
     end
 
   let check_closed msg conn =
-    if conn.c_closed then error Connection_closed "Stomp_client.%s: closed connection" msg
+    if conn.c_closed then
+      error Reconnect Connection_closed "Stomp_client.%s: closed connection" msg
     else return ()
 
   let header_is k v l =
@@ -165,7 +166,7 @@ struct
     receive_non_message_frame conn >>= function
         ("RECEIPT", hs, _) when header_is "receipt-id" rid hs ->
           return ()
-      | t -> error (Protocol_error t) "Stomp_client.%s: no RECEIPT received." msg
+      | t -> error Reconnect (Protocol_error t) "Stomp_client.%s: no RECEIPT received." msg
 
   let send_frame_with_receipt msg conn command hs body =
     check_closed msg conn >>= fun () ->
@@ -200,7 +201,7 @@ struct
               let msg_id = List.assoc "message-id" hs in
                 return { msg_id = msg_id; msg_headers = hs; msg_body = body }
             with Not_found ->
-              error (Protocol_error t) "Stomp_client.receive_msg: no message-id."
+              error Retry (Protocol_error t) "Stomp_client.receive_msg: no message-id."
           end
         | _ -> receive_msg conn (* try to get another frame *)
 
