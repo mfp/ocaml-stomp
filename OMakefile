@@ -25,7 +25,12 @@ if $(not $(OCAMLFIND_EXISTS))
 
 OCAML_OTHER_LIBS[] =
 
-OCamlLibrary(stomp, concurrency_monad stomp_client)
+LIBOBJS[] =
+	concurrency_monad
+	message_queue
+	stomp_client
+
+OCamlLibrary(stomp, $(LIBOBJS))
 
 toplevel: stomp.cma
 	ocamlfind ocamlmktop -package $(concat \,, $(OCAMLPACKS)) \
