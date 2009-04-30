@@ -7,6 +7,8 @@ sig
   val catch : (unit -> 'a t) -> (exn -> 'a t) -> 'a t
   val fail : exn -> 'a t
 
+  val iter_serial : ('a -> unit t) -> 'a list -> unit t
+
   type in_channel
   type out_channel
   val open_connection : Unix.sockaddr -> (in_channel * out_channel) t
@@ -31,6 +33,7 @@ module Posix_thread : THREAD
   let (>>=) v f =  f v
   let bind = (>>=)
   let fail = raise
+  let iter_serial = List.iter
 
   type in_channel = Pervasives.in_channel
   type out_channel = Pervasives.out_channel
@@ -52,7 +55,8 @@ module Green_thread : THREAD
    and type in_channel = Lwt_chan.in_channel
    and type out_channel = Lwt_chan.out_channel 
 = struct
-  include Lwt
+  include Lwt_util
   include Lwt_chan
+  include Lwt
 end
 
