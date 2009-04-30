@@ -48,7 +48,7 @@ struct
            output_string ch "\000\n" >>= fun () ->
            flush ch)
         (* FIXME: handle errors besides Sys_error differenty? *)
-        (fun _ -> error Reconnect (Connection_error Closed) "Stomp_client.%s" msg)
+        (fun _ -> error Reconnect (Connection_error Closed) "Mq_stomp_client.%s" msg)
 
   let send_frame msg conn command headers body =
     let rid = receipt_id () in
@@ -117,7 +117,7 @@ struct
       (fun () -> receive_frame conn)
       (function
            Sys_error _ | End_of_file ->
-               error Reconnect (Connection_error Closed) "Stomp_client.%s" msg
+               error Reconnect (Connection_error Closed) "Mq_stomp_client.%s" msg
          | e -> fail e)
 
   let rec receive_non_message_frame msg conn =
@@ -152,7 +152,7 @@ struct
     with Not_found -> false
 
   let connect ?login ?passcode ?(eof_nl = true) ?(headers = []) sockaddr =
-    establish_conn "Stomp_client.connect" sockaddr eof_nl >>= fun conn ->
+    establish_conn "Mq_stomp_client.connect" sockaddr eof_nl >>= fun conn ->
     let headers = match login, passcode with
         None, None -> headers
       | _ -> ("login", Option.default "" login) ::
@@ -161,8 +161,8 @@ struct
     receive_non_message_frame "connect" conn >>= function
         ("CONNECTED", _, _) -> return conn
       | ("ERROR", hs, _) when header_is "message" "access_refused" hs ->
-          error Abort (Connection_error Access_refused) "Stomp_client.connect"
-      | t  -> error Reconnect (Protocol_error t) "Stomp_client.connect"
+          error Abort (Connection_error Access_refused) "Mq_stomp_client.connect"
+      | t  -> error Reconnect (Protocol_error t) "Mq_stomp_client.connect"
 
   let disconnect conn =
     if conn.c_closed then return ()
@@ -186,7 +186,7 @@ struct
   let check_closed msg conn =
     if conn.c_closed then
       error Reconnect (Connection_error Closed)
-        "Stomp_client.%s: closed connection" msg
+        "Mq_stomp_client.%s: closed connection" msg
     else return ()
 
   let transaction_header = function
@@ -197,7 +197,7 @@ struct
     receive_non_message_frame msg conn >>= function
         ("RECEIPT", hs, _) when header_is "receipt-id" rid hs ->
           return ()
-      | t -> error Reconnect (Protocol_error t) "Stomp_client.%s: no RECEIPT received." msg
+      | t -> error Reconnect (Protocol_error t) "Mq_stomp_client.%s: no RECEIPT received." msg
 
   let send_frame_with_receipt msg conn command hs body =
     check_closed msg conn >>= fun () ->
@@ -238,7 +238,7 @@ struct
                        msg_body = body; }
             with Not_found ->
               error Retry (Protocol_error t)
-                "Stomp_client.receive_msg: no message-id or destination."
+                "Mq_stomp_client.receive_msg: no message-id or destination."
           end
         | _ -> receive_msg conn (* try to get another frame *)
 
