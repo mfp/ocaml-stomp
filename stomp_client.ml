@@ -37,27 +37,31 @@ struct
   let transaction_id =
     let i = ref 1 in fun () -> incr i; Printf.sprintf "transaction-%d" !i
 
-  let send_frame' conn command headers body =
+  let send_frame' msg conn command headers body =
     let ch = conn.c_out in
-    output_string ch (command ^ "\n") >>= fun () ->
-    output_headers ch headers >>= fun () ->
-    output_char ch '\n' >>= fun () ->
-    output_string ch body >>= fun () ->
-    output_string ch "\000\n" >>= fun () ->
-    flush ch
+      catch
+        (fun () ->
+           output_string ch (command ^ "\n") >>= fun () ->
+           output_headers ch headers >>= fun () ->
+           output_char ch '\n' >>= fun () ->
+           output_string ch body >>= fun () ->
+           output_string ch "\000\n" >>= fun () ->
+           flush ch)
+        (* FIXME: handle errors besides Sys_error differenty? *)
+        (fun _ -> error Reconnect (Connection_error Closed) "Stomp_client.%s" msg)
 
-  let send_frame conn command headers body =
+  let send_frame msg conn command headers body =
     let rid = receipt_id () in
     let headers = ("receipt", rid) :: headers in
-      send_frame' conn command headers body >>= fun () ->
+      send_frame' msg conn command headers body >>= fun () ->
       return rid
 
-  let send_frame_clength conn command headers body =
-    send_frame conn command
+  let send_frame_clength msg conn command headers body =
+    send_frame msg conn command
       (("content-length", string_of_int (String.length body)) :: headers) body
 
-  let send_frame_clength' conn command headers body =
-    send_frame' conn command
+  let send_frame_clength' msg conn command headers body =
+    send_frame' msg conn command
       (("content-length", string_of_int (String.length body)) :: headers) body
 
   let read_headers ch =
@@ -143,7 +147,7 @@ struct
         None, None -> headers
       | _ -> ("login", Option.default "" login) ::
              ("passcode", Option.default "" passcode) :: headers in
-    send_frame' conn "CONNECT" headers "" >>= fun () ->
+    send_frame' "connect" conn "CONNECT" headers "" >>= fun () ->
     receive_non_message_frame conn >>= function
         ("CONNECTED", _, _) -> return conn
       | ("ERROR", hs, _) when header_is "message" "access_refused" hs ->
@@ -153,7 +157,7 @@ struct
   let disconnect conn =
     if conn.c_closed then return ()
     else begin
-      send_frame' conn "DISCONNECT" [] "" >>= fun () ->
+      send_frame' "disconnect" conn "DISCONNECT" [] "" >>= fun () ->
       close_in conn.c_in >>= fun () ->
       (* closing one way can cause the other side to close this too *)
       catch (fun () -> close_out conn.c_out) (fun e -> return ()) >>= fun () ->
@@ -179,7 +183,7 @@ struct
 
   let send_frame_with_receipt msg conn command hs body =
     check_closed msg conn >>= fun () ->
-    send_frame conn command hs body >>= check_receipt msg conn
+    send_frame msg conn command hs body >>= check_receipt msg conn
 
   let send_headers transaction persistent destination =
     ("destination", destination) :: ("persistent", string_of_bool persistent) ::
@@ -188,7 +192,7 @@ struct
   let send_no_ack conn ?transaction ~destination ?(headers = []) body =
     check_closed "send_no_ack" conn >>= fun () ->
     let headers = headers @ send_headers transaction false destination in
-    send_frame_clength' conn "SEND" headers body
+    send_frame_clength' "send_no_ack" conn "SEND" headers body
 
   let send conn ?transaction ?(persistent = true) ~destination ?(headers = []) body =
     check_closed "send" conn >>= fun () ->
@@ -196,8 +200,11 @@ struct
       (* if given a transaction ID, don't try to get RECEIPT --- the message
        * will only be saved on COMMIT anyway *)
       match transaction with
-          None -> send_frame_clength conn "SEND" headers body >>= check_receipt "send" conn
-        | _ -> send_frame_clength' conn "SEND" headers body
+          None ->
+            send_frame_clength "send" conn "SEND" headers body >>=
+            check_receipt "send" conn
+        | _ ->
+            send_frame_clength' "send" conn "SEND" headers body
 
   let rec receive_msg conn =
     check_closed "receive_msg" conn >>= fun () ->
