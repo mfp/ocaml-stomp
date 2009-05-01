@@ -37,20 +37,20 @@ let random_topic () = sprintf "testing-topic-%d" (Random.int 100000000)
 
 let random_body () = sprintf "testing-body-%d" (Random.int 100000000)
 
-let test_topic_send (mq1, mq2) =
+let test_topic_send ((mq1, mq2) : _ #M.mq * _ #M.mq) =
   let destination = random_topic () in
   let body = random_body () in
     mq1#subscribe_topic destination;
     mq2#subscribe_topic destination;
-    mq1#topic_send ?transaction:None ~destination body;
-    mq2#topic_send ?transaction:None ~destination body;
+    mq1#topic_send ~destination body;
+    mq2#topic_send ~destination body;
     let m1 = mq1#receive_msg in
     let m2 = mq2#receive_msg in
     let dst = "/topic/" ^ destination in
       check_message m1 dst body;
       check_message m2 dst body
 
-let test_topic_sends (mq1, mq2, mq3) =
+let test_topic_sends ((mq1, mq2, mq3) : _ #M.mq * _ #M.mq * _ #M.mq) =
   let num_msgs = 1000 in
   let destination = random_topic () in
   let bodies = List.sort String.compare
@@ -58,7 +58,7 @@ let test_topic_sends (mq1, mq2, mq3) =
   in
     mq2#subscribe_topic destination;
     mq3#subscribe_topic destination;
-    List.iter (mq1#topic_send ?transaction:None ~destination) bodies;
+    List.iter (mq1#topic_send ~destination) bodies;
     let recvd2 = ref [] in
     let recvd3 = ref [] in
       for i = 1 to List.length bodies do
