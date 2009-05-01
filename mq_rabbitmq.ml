@@ -41,7 +41,6 @@ struct
     c_login : string;
     c_passcode : string;
   }
-  type message_id = B.message_id
 
   let make_topic_id =
     let i = ref 0 in fun () -> incr i; sprintf "topic-%d" !i

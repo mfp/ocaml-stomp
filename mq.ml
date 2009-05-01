@@ -19,7 +19,6 @@ sig
   type 'a thread
   type connection
   type transaction
-  type message_id
 
   val transaction_begin : connection -> transaction thread
   val transaction_commit : connection -> transaction -> unit thread
