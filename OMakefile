@@ -28,6 +28,7 @@ OCAML_OTHER_LIBS[] =
 LIBOBJS[] =
 	mq
 	mq_concurrency
+	mq_impl
 	mq_rabbitmq
 	mq_stomp_client
 

@@ -3,7 +3,7 @@ open Printf
 open OUnit
 
 module STOMP = Mq_rabbitmq.Make_STOMP(Mq_concurrency.Posix_thread)
-module M = Mq.Make(Mq_concurrency.Posix_thread)(STOMP)
+module M = Mq_impl.Make(Mq_concurrency.Posix_thread)(STOMP)
 
 let login = ref "guest"
 let passcode = ref "guest"
