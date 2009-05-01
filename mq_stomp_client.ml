@@ -170,11 +170,7 @@ struct
       catch
         (fun () ->
            send_frame' "disconnect" conn "DISCONNECT" [] "" >>= fun () ->
-           (* closing one way can cause the other side to close the other one too *)
-           catch
-             (fun () -> close_in conn.c_in >>= fun () -> close_out conn.c_out)
-             (* FIXME: Sys_error only? *)
-             (fun _ -> return ()) >>= fun () ->
+           close_in_noerr conn.c_in >>= fun () -> close_out_noerr conn.c_out >>= fun () ->
            conn.c_closed <- true;
            return ())
         (function
