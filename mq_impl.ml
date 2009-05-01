@@ -6,7 +6,7 @@ module Make
 struct
   open C
 
-  class virtual ['tx] message_queue_base =
+  class virtual ['tx] mq =
   object
     method virtual disconnect : unit M.thread
     method virtual reconnect : unit M.thread
@@ -41,9 +41,9 @@ struct
   type subscription = Queue of string | Topic of string
   module Sset = Set.Make(struct type t = subscription let compare = compare end)
 
-  class message_queue ?prefetch ~login ~passcode addr =
+  class simple_queue ?prefetch ~login ~passcode addr =
   object(self)
-    inherit [M.transaction] message_queue_base
+    inherit [M.transaction] mq
     val mutable conn = None
     val mutable subs = Sset.empty
 
@@ -133,9 +133,9 @@ struct
   end
 
   let make_tcp_message_queue ?prefetch ~login ~passcode addr port =
-    new message_queue ?prefetch ~login ~passcode
+    new simple_queue ?prefetch ~login ~passcode
       (Unix.ADDR_INET (Unix.inet_addr_of_string addr, port))
 
   let make_unix_message_queue ?prefetch ~login ~passcode path =
-    new message_queue ?prefetch ~login ~passcode (Unix.ADDR_UNIX path)
+    new simple_queue ?prefetch ~login ~passcode (Unix.ADDR_UNIX path)
 end
