@@ -55,6 +55,7 @@ struct
 
   let receive_msg = delegate B.receive_msg
   let ack_msg = delegate B.ack_msg
+  let ack = delegate B.ack
 
   let disconnect = delegate B.disconnect
 

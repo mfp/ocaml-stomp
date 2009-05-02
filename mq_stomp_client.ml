@@ -242,6 +242,10 @@ struct
     let headers = ("message-id", msg.msg_id) :: transaction_header transaction in
     send_frame_with_receipt "ack_msg" conn "ACK" headers ""
 
+  let ack conn ?transaction msgid =
+    let headers = ("message-id", msgid) :: transaction_header transaction in
+    send_frame_with_receipt "ack" conn "ACK" headers ""
+
   let subscribe conn ?(headers = []) s =
     send_frame_with_receipt "subscribe" conn
       "SUBSCRIBE" (headers @ ["destination", s]) ""

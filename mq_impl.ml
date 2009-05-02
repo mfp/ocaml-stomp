@@ -18,6 +18,7 @@ struct
 
     method virtual receive_msg : received_msg M.thread
     method virtual ack_msg : ?transaction:'tx -> received_msg -> unit M.thread
+    method virtual ack : ?transaction:'tx -> string -> unit M.thread
 
     method virtual send :
       ?transaction:'tx -> destination:string -> string -> unit M.thread
@@ -88,8 +89,12 @@ struct
     method transaction_abort_all = self#with_conn M.transaction_abort_all
 
     method receive_msg = self#with_conn M.receive_msg
+
     method ack_msg ?transaction msg =
       self#with_conn (fun c -> M.ack_msg c ?transaction msg)
+
+    method ack ?transaction msgid =
+      self#with_conn (fun c -> M.ack c ?transaction msgid)
 
     method private aux_send f :
         ?transaction:M.transaction -> destination:string -> string -> unit M.thread =

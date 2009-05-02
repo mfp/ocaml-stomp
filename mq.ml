@@ -28,6 +28,7 @@ sig
 
   val receive_msg : connection -> received_msg thread
   val ack_msg : connection -> ?transaction:transaction -> received_msg -> unit thread
+  val ack : connection -> ?transaction:transaction -> string -> unit thread
 
   val disconnect : connection -> unit thread
 end
