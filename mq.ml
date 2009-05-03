@@ -69,7 +69,7 @@ sig
     destination:string -> string -> unit thread
 
   val create_queue : connection -> string -> unit thread
-  val subscribe_queue : connection -> string -> unit thread
+  val subscribe_queue : connection -> ?auto_delete:bool -> string -> unit thread
   val unsubscribe_queue : connection -> string -> unit thread
   val subscribe_topic : connection -> string -> unit thread
   val unsubscribe_topic : connection -> string -> unit thread
