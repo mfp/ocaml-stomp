@@ -13,10 +13,13 @@ BYTE_ENABLED = true
 
 USE_OCAMLFIND = true
 
+OCAMLFLAGS += -thread
+
 OCAMLPACKS[] =
 	lwt
 	extlib
 	cryptokit
+	threads
 
 if $(not $(OCAMLFIND_EXISTS))
    eprintln(This project requires ocamlfind, but is was not found.)
