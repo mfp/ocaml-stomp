@@ -121,7 +121,6 @@ module Green_thread : THREAD
   include Lwt
 
   let close_in_noerr ch = catch (fun () -> close_in ch) (fun _ -> return ())
-  let close_out_noerr ch = catch (fun () -> close_out ch) (fun _ -> return ())
 
   type 'a pool = 'a Lwt_pool.t
 
@@ -129,5 +128,8 @@ module Green_thread : THREAD
     Lwt_pool.create n ~check:(fun x f -> f (check x)) f
 
   let use = Lwt_pool.use
+
+  let close_out oc = flush oc >>= fun () -> close_out oc
+  let close_out_noerr ch = catch (fun () -> close_out ch) (fun _ -> return ())
 end
 
