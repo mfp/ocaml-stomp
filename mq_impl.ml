@@ -31,7 +31,7 @@ struct
       ?transaction:'tx -> destination:string -> string -> unit M.thread
 
     method virtual create_queue : string -> unit M.thread
-    method virtual subscribe_queue : string -> unit M.thread
+    method virtual subscribe_queue : ?auto_delete:bool -> string -> unit M.thread
     method virtual unsubscribe_queue : string -> unit M.thread
     method virtual subscribe_topic : string -> unit M.thread
     method virtual unsubscribe_topic : string -> unit M.thread
@@ -108,8 +108,8 @@ struct
 
     method create_queue s = self#with_conn (fun c -> M.create_queue c s)
 
-    method subscribe_queue s =
-      self#with_conn (fun c -> M.subscribe_queue c s) >>= fun () ->
+    method subscribe_queue ?(auto_delete = false) s =
+      self#with_conn (fun c -> M.subscribe_queue ~auto_delete c s) >>= fun () ->
       subs <- Sset.add (Queue s) subs;
       return ()
 
