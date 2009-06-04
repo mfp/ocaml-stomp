@@ -199,6 +199,10 @@ struct
     check_closed msg conn >>= fun () ->
     send_frame msg conn command hs body >>= check_receipt msg conn
 
+  let send_frame_without_receipt msg conn command hs body =
+    check_closed msg conn >>= fun () ->
+    send_frame' msg conn command hs body
+
   let send_headers transaction persistent destination =
     ("destination", destination) :: ("persistent", string_of_bool persistent) ::
     transaction_header transaction
@@ -247,11 +251,11 @@ struct
     send_frame_with_receipt "ack" conn "ACK" headers ""
 
   let subscribe conn ?(headers = []) s =
-    send_frame_with_receipt "subscribe" conn
+    send_frame_without_receipt "subscribe" conn
       "SUBSCRIBE" (headers @ ["destination", s]) ""
 
   let unsubscribe conn ?(headers = []) s =
-    send_frame_with_receipt "subscribe" conn "UNSUBSCRIBE" (headers @ ["destination", s]) ""
+    send_frame_without_receipt "subscribe" conn "UNSUBSCRIBE" (headers @ ["destination", s]) ""
 
   let transaction_begin conn =
     let tid = transaction_id () in
