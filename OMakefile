@@ -33,6 +33,7 @@ LIBOBJS[] =
 	mq_concurrency
 	mq_impl
 	mq_rabbitmq
+	mq_activemq
 	mq_stomp_client
 
 OCamlLibrary(stomp, $(LIBOBJS))
