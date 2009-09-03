@@ -39,7 +39,7 @@ OCamlLibrary(stomp, $(LIBOBJS))
 
 toplevel: stomp.cma
 	ocamlfind ocamlmktop -package $(concat \,, $(OCAMLPACKS)) \
-	    -linkall -linkpkg stomp.cma -o $@
+	    -linkall -linkpkg stomp.cma -o $@ -thread
 
 NATIVE_ENABLED = true
 
