@@ -130,5 +130,7 @@ struct
     match (try Some (M.find topic conn.c_topic_ids) with Not_found -> None) with
         None -> return ()
       | Some id ->
-          B.unsubscribe conn.c_conn ~headers:["id", id] ("/topic/" ^ topic)
+          B.unsubscribe conn.c_conn ~headers:["id", id] ("/topic/" ^ topic) >>= fun () ->
+          conn.c_topic_ids <- M.remove topic conn.c_topic_ids;
+          return ()
 end
