@@ -79,7 +79,7 @@ struct
       ~destination:("/queue/" ^ destination) body
 
   let send_no_ack conn ?transaction ~destination body =
-    B.send conn.c_conn ?transaction
+    B.send_no_ack conn.c_conn ?transaction
       ~headers:normal_headers
       ~destination:("/queue/" ^ destination) body
 
