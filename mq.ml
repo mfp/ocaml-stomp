@@ -41,7 +41,7 @@ sig
     ?headers:(string * string) list -> Unix.sockaddr -> connection thread
   val send : connection -> ?transaction:transaction -> ?persistent:bool ->
     destination:string -> ?headers:(string * string) list -> string -> unit thread
-  val send_no_ack : connection -> ?transaction:transaction ->
+  val send_no_ack : connection -> ?transaction:transaction -> ?persistent:bool ->
     destination:string -> ?headers:(string * string) list -> string -> unit thread
 
   val subscribe : connection -> ?headers:(string * string) list -> string -> unit thread

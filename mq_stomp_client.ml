@@ -207,9 +207,10 @@ struct
     ("destination", destination) :: ("persistent", string_of_bool persistent) ::
     transaction_header transaction
 
-  let send_no_ack conn ?transaction ~destination ?(headers = []) body =
+  let send_no_ack conn
+        ?transaction ?(persistent = true) ~destination ?(headers = []) body =
     check_closed "send_no_ack" conn >>= fun () ->
-    let headers = headers @ send_headers transaction false destination in
+    let headers = headers @ send_headers transaction persistent destination in
     send_frame_clength' "send_no_ack" conn "SEND" headers body
 
   let send conn ?transaction ?(persistent = true) ~destination ?(headers = []) body =
