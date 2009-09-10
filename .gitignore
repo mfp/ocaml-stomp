@@ -15,5 +15,6 @@ OMake*.omc
 *.annot
 
 /toplevel
+/test_receive
 /test_send
 /test_send_rabbitmq

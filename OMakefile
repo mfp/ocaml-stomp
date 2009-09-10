@@ -45,6 +45,7 @@ toplevel: stomp.cma
 NATIVE_ENABLED = true
 
 OCAML_LIBS[] += stomp
+OCamlProgram(test_receive, test_receive)
 OCamlProgram(test_send, test_send)
 OCamlProgram(test_send_rabbitmq, test_send_rabbitmq)
 
@@ -54,7 +55,7 @@ section
     test_mq.o test_mq.cmx test_mq.cmo test_mq.cmi:
 
 .PHONY: programs
-programs: test_send test_send_rabbitmq
+programs: test_receive test_send test_send_rabbitmq
 
 .PHONY: clean
 
