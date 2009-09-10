@@ -19,6 +19,7 @@ let no_ack = ref false
 let payload = ref None
 let headers = ref []
 let persistent = ref false
+let verbose = ref false
 
 let msg = "Usage: test_send -n N [options]"
 
@@ -41,6 +42,7 @@ let args =
       "--payload", Int (fun n -> payload := Some n), "N Use payload of length N.";
       "--header", String (fun h -> headers := h :: !headers),
          "HEADER Use the supplied custom header.";
+      "--verbose", Set verbose, " Verbose mode.";
     ]
 
 let () =
@@ -81,7 +83,7 @@ let () =
     end;
     (try
       for i = 1 to !num_msgs - 1 do
-        printf "\r%d%!" i;
+        if !verbose then printf "\r%d%!" i;
         if !no_ack then
           S.send_no_ack c
             ~persistent ~headers ~destination:(queue_name i) (gen_payload i)
