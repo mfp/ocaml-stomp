@@ -20,6 +20,7 @@ let payload = ref None
 let headers = ref []
 let persistent = ref false
 let verbose = ref false
+let nthreads = ref 1
 
 let msg = "Usage: test_send -n N [options]"
 
@@ -39,6 +40,7 @@ let args =
       "--passcode", String (set_some passcode), "PASSCODE Use the given passcode (default: none).";
       "--newline", Set use_nl_eof, " Use \\0\\n to signal end of frame (default: no).";
       "--async", Set no_ack, " Send without waiting for receipt.";
+      "--concurrency", Set_int nthreads, "N Concurrency factor.";
       "--payload", Int (fun n -> payload := Some n), "N Use payload of length N.";
       "--header", String (fun h -> headers := h :: !headers),
          "HEADER Use the supplied custom header.";
@@ -51,8 +53,6 @@ let () =
     Arg.usage args msg;
     exit 1;
   end;
-  let c = S.connect ?login:!login ?passcode:!passcode ~eof_nl:!use_nl_eof
-            (Unix.ADDR_INET (Unix.inet_addr_of_string !address, !port)) in
   let gen_payload = match !payload with
       None -> string_of_int
     | Some n ->
@@ -62,27 +62,29 @@ let () =
       None -> !queue
     | Some n -> String.concat "-" [!queue; string_of_int (i mod n)] in
   let cnt = ref 1 in
-  let t0 = Unix.gettimeofday () in
   let headers =
     List.filter_map
       (fun h -> try Some (String.split h ":") with _ -> None)
       !headers in
-  let print_rate () =
+  let persistent = !persistent in
+
+  let send_last c =
     (* send the last one with receipt, so we know the server has read all the
      * other SENDs *)
     incr cnt;
-    S.send c ~headers ~destination:(queue_name !cnt) (gen_payload !cnt);
+    S.send c ~headers ~destination:(queue_name !cnt) (gen_payload !cnt) in
+
+  let t0 = Unix.gettimeofday () in
+  let print_rate () =
     let dt = Unix.gettimeofday () -. t0 in
       printf "\n\nSent %8.1f messages/second.\n" (float !cnt /. dt) in
-  let persistent = !persistent in
+
   let finish = ref false in
-    Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> finish := true));
-    begin match !num_queues with
-        None -> printf "Sending to %s\n" !queue
-      | Some n -> printf "Sending to %d queues of prefix %s-\n" n !queue
-    end;
-    (try
-      for i = 1 to !num_msgs - 1 do
+  let run n =
+    let c = S.connect ?login:!login ?passcode:!passcode ~eof_nl:!use_nl_eof
+              (Unix.ADDR_INET (Unix.inet_addr_of_string !address, !port))
+    in try
+      for i = 1 to n do
         if !verbose then printf "\r%d%!" i;
         if !no_ack then
           S.send_no_ack c
@@ -90,9 +92,26 @@ let () =
         else
           S.send c
             ~persistent ~headers ~destination:(queue_name i) (gen_payload i);
-        cnt := i;
+        incr cnt;
         if !finish then raise Exit;
-      done;
-     with Exit -> ());
+      done
+    with Exit -> send_last c;
+                 S.disconnect c
+  in
+    Sys.set_signal Sys.sigint
+      (Sys.Signal_handle
+         (fun _ ->
+            finish := true;
+            Sys.set_signal Sys.sigint
+              (Sys.Signal_handle (fun _ -> exit 1))));
+    begin match !num_queues with
+        None -> printf "Sending to %s\n" !queue
+      | Some n -> printf "Sending to at most %d queues of prefix %s-\n" n !queue
+    end;
+    begin match !nthreads with
+        n when n <= 1 -> run !num_msgs
+      | n ->
+          let ts = List.init n (fun _ -> Thread.create run (!num_msgs / n)) in
+            List.iter Thread.join ts
+    end;
     print_rate ();
-    S.disconnect c
