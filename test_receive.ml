@@ -17,6 +17,7 @@ let use_nl_eof = ref false
 let ack = ref false
 let verbose = ref false
 let readsubs = ref false
+let durable = ref false
 
 let msg = "Usage: test_receive [options]"
 
@@ -32,6 +33,7 @@ let args =
       "-s", String (fun s -> dests := s :: !dests), "NAME Subscribe to destination NAME.";
       "--stdin", Set readsubs, " Read list of destinations to from stdin.";
       "--ack", Set ack, " Send ACKs for received messages.";
+      "--durable", Set durable, " Create durable destinations in RabbitMQ.";
       "--login", String (set_some login), "LOGIN Use the given login (default: none).";
       "--passcode", String (set_some passcode), "PASSCODE Use the given passcode (default: none).";
       "--newline", Set use_nl_eof, " Use \\0\\n to signal end of frame (default: no).";
@@ -65,10 +67,13 @@ let () =
       S.disconnect c;
       exit 1 in
   let subs = if !readsubs then !dests @ read_subs () else !dests in
+  let headers =
+    if !durable then ["auto-delete", "false"; "durable", "true"] else [] in
+  let headers = if !ack then ("ack", "client") :: headers else headers in
     Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> print_rate ()));
     if !verbose then
       printf "Subscribing to %d destination(s)... %!" (List.length subs);
-    List.iter (S.subscribe c ) subs;
+    List.iter (S.subscribe ~headers c) subs;
     if !verbose then printf "DONE\n%!";
     (try
       for i = 1 to !num_msgs do
