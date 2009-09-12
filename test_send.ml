@@ -61,7 +61,7 @@ let () =
   let queue_name i = match !num_queues with
       None -> !queue
     | Some n -> String.concat "-" [!queue; string_of_int (i mod n)] in
-  let cnt = ref 1 in
+  let cnt = ref 0 in
   let headers =
     List.filter_map
       (fun h -> try Some (String.split h ":") with _ -> None)
@@ -71,8 +71,8 @@ let () =
   let send_last c =
     (* send the last one with receipt, so we know the server has read all the
      * other SENDs *)
-    incr cnt;
-    S.send c ~headers ~destination:(queue_name !cnt) (gen_payload !cnt) in
+    S.send c ~headers ~destination:(queue_name !cnt) (gen_payload !cnt);
+    incr cnt in
 
   let t0 = Unix.gettimeofday () in
   let print_rate () =
@@ -85,7 +85,7 @@ let () =
               (Unix.ADDR_INET (Unix.inet_addr_of_string !address, !port))
     in try
       for i = 1 to n do
-        if !verbose then printf "\r%d%!" i;
+        if !verbose && !cnt mod 11 = 0 then printf "\r%d%!" !cnt;
         if !no_ack then
           S.send_no_ack c
             ~persistent ~headers ~destination:(queue_name i) (gen_payload i)
@@ -102,8 +102,10 @@ let () =
       (Sys.Signal_handle
          (fun _ ->
             finish := true;
+            print_endline
+              "\nSending last message synchronously. Press CTRL-C again to exit.";
             Sys.set_signal Sys.sigint
-              (Sys.Signal_handle (fun _ -> exit 1))));
+              (Sys.Signal_handle (fun _ -> print_rate (); exit 1))));
     begin match !num_queues with
         None -> printf "Sending to %s\n" !queue
       | Some n -> printf "Sending to at most %d queues of prefix %s-\n" n !queue
