@@ -45,7 +45,7 @@ struct
            output_headers ch headers >>= fun () ->
            output_char ch '\n' >>= fun () ->
            output_string ch body >>= fun () ->
-           output_string ch "\000\n" >>= fun () ->
+           output_string ch (if conn.c_eof_nl then "\000\n" else "\000") >>= fun () ->
            flush ch)
         (* FIXME: handle errors besides Sys_error differenty? *)
         (fun _ -> error Reconnect (Connection_error Closed) "Mq_stomp_client.%s" msg)
