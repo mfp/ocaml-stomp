@@ -53,7 +53,7 @@ struct
       | Some c -> conn <- None; M.disconnect c
 
     method private reopen_conn =
-      let set_conn () =
+      let do_set_conn () =
         M.connect ?prefetch ~login ~passcode addr >>= fun c ->
           conn <- Some c;
           self#with_conn
@@ -61,7 +61,15 @@ struct
                         (function
                              Queue q -> M.subscribe_queue c q
                            | Topic t -> M.subscribe_topic c t)
-                        (Sset.elements subs))
+                        (Sset.elements subs)) in
+      let rec set_conn () =
+        catch
+          (fun () -> do_set_conn ())
+          (function
+               Message_queue_error (_, _, Connection_error (Connection_refused | Closed)) ->
+                 C.sleep 1. >>= fun () ->
+                 set_conn ()
+             | e -> fail e)
       in match conn with
           None -> set_conn ()
         | Some c -> self#disconnect >>= fun () -> set_conn ()
