@@ -6,6 +6,7 @@ sig
   val bind : 'a t -> ('a -> 'b t) -> 'b t
   val catch : (unit -> 'a t) -> (exn -> 'a t) -> 'a t
   val fail : exn -> 'a t
+  val sleep : float -> unit t
 
   val iter_serial : ('a -> unit t) -> 'a list -> unit t
 
@@ -42,6 +43,7 @@ module Posix_thread : THREAD
   let bind = (>>=)
   let fail = raise
   let iter_serial = List.iter
+  let sleep = Thread.delay
 
   include Pervasives
   let open_connection = Unix.open_connection
@@ -119,6 +121,8 @@ module Green_thread : THREAD
   include Lwt_util
   include Lwt_chan
   include Lwt
+
+  let sleep = Lwt_unix.sleep
 
   let close_in_noerr ch = catch (fun () -> close_in ch) (fun _ -> return ())
 
