@@ -67,10 +67,18 @@ DEFAULT = stomp.cma stomp.cmxa
 .PHONY: all
 all: toplevel $(DEFAULT)
 
-.PHONY: doc
-doc:
-	ocamlfind ocamldoc -d doc -html -package $(concat \,, $(OCAMLPACKS)) \
-	    *.ml *.mli
+section
+    OCAMLPACKS[] += threads.posix
+    SOURCES = $(filter-exists $(addsuffixes .ml .mli, $(LIBOBJS)))
+
+    .PHONY: doc
+    doc: doc/index.html
+
+    doc/index.html: $(SOURCES)
+	ocamlfind ocamldoc \
+	    -d doc -html -stars -sort \
+	    $(mapprefix -package, $(OCAMLPACKS)) \
+	    $(SOURCES)
 
 clean:
-	rm -f $(filter-proper-targets $(ls R, .)) *.annot *.s
+	rm -f $(filter-proper-targets $(ls R, .)) *.annot *.s doc
