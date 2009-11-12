@@ -76,6 +76,7 @@ section
     doc: doc/index.html
 
     doc/index.html: $(SOURCES)
+        mkdir -p doc
 	ocamlfind ocamldoc \
 	    -d doc -html -stars -sort \
 	    $(mapprefix -package, $(OCAMLPACKS)) \
