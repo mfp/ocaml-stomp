@@ -1,3 +1,5 @@
+(* Copyright (c) 2009 Mauricio Fernández <mfp@acm.org> *)
+
 (** Concurrency monads over which the message queue clients are functorized. *)
 
 module type THREAD =

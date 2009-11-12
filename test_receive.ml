@@ -1,3 +1,4 @@
+(* Copyright (c) 2009 Mauricio Fernández <mfp@acm.org> *)
 open Arg
 open Printf
 open ExtString

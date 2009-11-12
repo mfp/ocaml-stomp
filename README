@@ -1,3 +1,5 @@
 
 Streaming Text Orientated(sic) Messaging Protocol (STOMP) version 1.0
 client implementation in OCaml.
+
+See LICENSE for the license information.

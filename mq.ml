@@ -1,3 +1,4 @@
+(* Copyright (c) 2009 Mauricio Fernández <mfp@acm.org> *)
 (** Message queue (MQ): message and error type definitions, module types. *)
 
 (** Type of received messages. *)

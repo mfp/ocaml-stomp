@@ -1,3 +1,4 @@
+(* Copyright (c) 2009 Mauricio Fernández <mfp@acm.org> *)
 
 module Make_STOMP(C : Mq_concurrency.THREAD) =
 struct
