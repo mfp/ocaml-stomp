@@ -1,3 +1,5 @@
+(** Concurrency monads over which the message queue clients are functorized. *)
+
 module type THREAD =
 sig
   type 'a t
