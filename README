@@ -2,4 +2,32 @@
 Streaming Text Orientated(sic) Messaging Protocol (STOMP) version 1.0
 client implementation in OCaml.
 
+Dependencies
+============
+
+  omake
+  findlib (ocamlfind)
+
+plus the following findlib packages (OCaml libraries):
+
+  cryptokit
+  extlib
+  lwt
+  threads
+
+Compiling
+=========
+
+  omake
+
+will compile the stomp.cm(x)a library and the send/receive test/benchmark
+programs (test_send, test_receive, test_send_rabbitmq).
+
+The ocamldoc documentation can be generated using
+
+  omake doc
+
+LICENSE
+=======
+
 See LICENSE for the license information.
