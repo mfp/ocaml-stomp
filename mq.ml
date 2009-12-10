@@ -78,11 +78,11 @@ sig
 
   (** Send and wait for ACK. *)
   val send : connection -> ?transaction:transaction ->
-    destination:string -> string -> unit thread
+    ?ack_timeout:float -> destination:string -> string -> unit thread
 
   (** Send without waiting for confirmation. *)
   val send_no_ack : connection -> ?transaction:transaction ->
-    destination:string -> string -> unit thread
+    ?ack_timeout:float -> destination:string -> string -> unit thread
 
   (** Send to a topic and wait for ACK *)
   val topic_send : connection -> ?transaction:transaction ->

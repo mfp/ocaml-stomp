@@ -22,9 +22,11 @@ struct
     method virtual ack : ?transaction:'tx -> string -> unit M.thread
 
     method virtual send :
-      ?transaction:'tx -> destination:string -> string -> unit M.thread
+      ?transaction:'tx -> ?ack_timeout:float ->
+      destination:string -> string -> unit M.thread
     method virtual send_no_ack :
-      ?transaction:'tx -> destination:string -> string -> unit M.thread
+      ?transaction:'tx -> ?ack_timeout:float ->
+      destination:string -> string -> unit M.thread
 
     method virtual topic_send :
       ?transaction:'tx -> destination:string -> string -> unit M.thread
@@ -110,8 +112,13 @@ struct
       fun ?transaction ~destination body ->
         self#with_conn (fun c -> f c ?transaction ~destination body)
 
-    method send = self#aux_send M.send
-    method send_no_ack = self#aux_send M.send_no_ack
+    method send ?transaction ?ack_timeout ~destination body =
+      self#with_conn (fun c -> M.send c ?ack_timeout ?transaction ~destination body)
+
+    method send_no_ack ?transaction ?ack_timeout ~destination body =
+      self#with_conn
+        (fun c -> M.send_no_ack c ?ack_timeout ?transaction ~destination body)
+
     method topic_send = self#aux_send M.topic_send
     method topic_send_no_ack = self#aux_send M.topic_send_no_ack
 

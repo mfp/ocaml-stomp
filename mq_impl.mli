@@ -17,9 +17,11 @@ module Make :
         method virtual reconnect : unit M.thread
         method virtual send :
           ?transaction:'a ->
+          ?ack_timeout:float ->
           destination:string -> string -> unit M.thread
         method virtual send_no_ack :
           ?transaction:'a ->
+          ?ack_timeout:float ->
           destination:string -> string -> unit M.thread
         method virtual subscribe_queue :
           ?auto_delete:bool -> string -> unit M.thread
@@ -55,9 +57,11 @@ module Make :
         method reconnect : unit M.thread
         method send :
           ?transaction:M.transaction ->
+          ?ack_timeout:float ->
           destination:string -> string -> unit M.thread
         method send_no_ack :
           ?transaction:M.transaction ->
+          ?ack_timeout:float ->
           destination:string -> string -> unit M.thread
         method subscribe_queue :
           ?auto_delete:bool -> string -> unit M.thread

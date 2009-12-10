@@ -74,12 +74,12 @@ struct
   let normal_headers = ["content-type", "application/octet-stream"]
   let topic_headers = ["exchange", "amq.topic"] @ normal_headers
 
-  let send conn ?transaction ~destination body =
+  let send conn ?transaction ?ack_timeout ~destination body =
     B.send conn.c_conn ?transaction
       ~headers:normal_headers
       ~destination:("/queue/" ^ destination) body
 
-  let send_no_ack conn ?transaction ~destination body =
+  let send_no_ack conn ?transaction ?ack_timeout ~destination body =
     B.send_no_ack conn.c_conn ?transaction
       ~headers:normal_headers
       ~destination:("/queue/" ^ destination) body

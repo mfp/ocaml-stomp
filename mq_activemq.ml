@@ -39,13 +39,12 @@ struct
       c_prefetch = prefetch;
     }
 
-
-  let send conn ?transaction ~destination body =
+  let send conn ?transaction ?ack_timeout ~destination body =
     B.send conn.c_conn ?transaction
       ~headers:["persistent", "true"]
       ~destination:("/queue/" ^ destination) body
 
-  let send_no_ack conn ?transaction ~destination body =
+  let send_no_ack conn ?transaction ?ack_timeout ~destination body =
     B.send_no_ack conn.c_conn ?transaction
       ~headers:["persistent", "true"]
       ~destination:("/queue/" ^ destination) body
