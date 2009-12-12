@@ -1,4 +1,11 @@
-(** {!Mq.GENERIC} STOMP protocol client. *)
+(** {!Mq.GENERIC} STOMP protocol client.
+  *
+  * Note: don't execute multiple operations on a single connection
+  * concurrently: neither the implementation nor the STOMP protocol support
+  * concurrent operations (e.g., ERROR frames are not associated to a given
+  * request, so we must assume they refer to the latest request).
+  * Concurrent operations on different connections are fine.
+  * *)
 module Make_generic : functor (C : Mq_concurrency.THREAD) ->
 sig
   type receipt = {
