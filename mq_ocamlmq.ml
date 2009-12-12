@@ -17,4 +17,17 @@ struct
         try
           return (Some (Int64.of_string (List.assoc "num-messages" r.B.r_headers)))
         with _ -> return None
+
+  let timeout_headers =
+    Option.map_default (fun timeout -> ["ack_timeout", string_of_float timeout]) []
+
+  let send conn ?transaction ?ack_timeout ~destination body =
+    B.send (get_stomp_connection conn) ?transaction
+      ~headers:(timeout_headers ack_timeout)
+      ~destination:("/queue/" ^ destination) body
+
+  let send_no_ack conn ?transaction ?ack_timeout ~destination body =
+    B.send_no_ack (get_stomp_connection conn) ?transaction
+      ~headers:(timeout_headers ack_timeout)
+      ~destination:("/queue/" ^ destination) body
 end
