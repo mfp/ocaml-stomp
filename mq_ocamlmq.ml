@@ -19,7 +19,7 @@ struct
         with _ -> return None
 
   let timeout_headers =
-    Option.map_default (fun timeout -> ["ack_timeout", string_of_float timeout]) []
+    Option.map_default (fun timeout -> ["ack-timeout", string_of_float timeout]) []
 
   let send conn ?transaction ?ack_timeout ~destination body =
     B.send (get_stomp_connection conn) ?transaction
