@@ -38,6 +38,8 @@ struct
     method virtual unsubscribe_queue : string -> unit M.thread
     method virtual subscribe_topic : string -> unit M.thread
     method virtual unsubscribe_topic : string -> unit M.thread
+
+    method virtual queue_size : string -> Int64.t option M.thread
   end
 
   module Tset = Set.Make(struct type t = M.transaction let compare = compare end)
@@ -123,6 +125,8 @@ struct
     method topic_send_no_ack = self#aux_send M.topic_send_no_ack
 
     method create_queue s = self#with_conn (fun c -> M.create_queue c s)
+
+    method queue_size s = self#with_conn (fun c -> M.queue_size c s)
 
     method subscribe_queue ?(auto_delete = false) s =
       self#with_conn (fun c -> M.subscribe_queue ~auto_delete c s) >>= fun () ->

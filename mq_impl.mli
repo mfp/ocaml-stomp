@@ -38,6 +38,7 @@ module Make :
         method virtual transaction_commit_all : unit M.thread
         method virtual unsubscribe_queue : string -> unit M.thread
         method virtual unsubscribe_topic : string -> unit M.thread
+        method virtual queue_size : string -> Int64.t option M.thread
       end
 
     class simple_queue :
@@ -78,6 +79,7 @@ module Make :
         method transaction_commit_all : unit M.thread
         method unsubscribe_queue : string -> unit M.thread
         method unsubscribe_topic : string -> unit M.thread
+        method queue_size : string -> Int64.t option M.thread
       end
 
     val make_tcp_message_queue :
