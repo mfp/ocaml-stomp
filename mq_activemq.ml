@@ -87,4 +87,8 @@ struct
       conn.c_topics <- S.remove topic conn.c_topics;
       return ()
     end
+
+  let queue_size conn queue = return None
+
+  let get_stomp_connection t = t.c_conn
 end

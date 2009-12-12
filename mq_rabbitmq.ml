@@ -134,4 +134,6 @@ struct
           B.unsubscribe conn.c_conn ~headers:["id", id] ("/topic/" ^ topic) >>= fun () ->
           conn.c_topic_ids <- M.remove topic conn.c_topic_ids;
           return ()
+
+  let queue_size conn queue = return None
 end
