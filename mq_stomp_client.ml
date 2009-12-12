@@ -12,6 +12,11 @@ struct
   type transaction = string
   type message_id = string
 
+  type receipt = {
+    r_headers : (string * string) list;
+    r_body : string;
+  }
+
   type connection = {
     c_in : in_channel;
     c_out : out_channel;
@@ -19,6 +24,8 @@ struct
     mutable c_transactions : S.t;
     c_eof_nl : bool;
     c_pending_msgs : received_msg Queue.t;
+    mutable c_expected_receipts : S.t;
+    c_pending_receipts : (string, receipt) Hashtbl.t;
   }
 
   let error restartable err fmt =
@@ -146,7 +153,9 @@ struct
          | e -> fail e)
     >>= fun (c_in, c_out) ->
     return { c_in = c_in; c_out = c_out; c_closed = false; c_transactions = S.empty;
-             c_eof_nl = eof_nl; c_pending_msgs = Queue.create () }
+             c_eof_nl = eof_nl; c_pending_msgs = Queue.create ();
+             c_expected_receipts = S.empty; c_pending_receipts = Hashtbl.create 13;
+    }
 
   let header_is k v l =
     try
@@ -191,11 +200,23 @@ struct
       None -> []
     | Some t -> ["transaction", t]
 
-  let check_receipt msg conn rid =
+  let rec get_receipt msg conn rid =
     receive_non_message_frame msg conn >>= function
-        ("RECEIPT", hs, _) when header_is "receipt-id" rid hs ->
-          return ()
-      | t -> error Reconnect (Protocol_error t) "Mq_stomp_client.%s: no RECEIPT received." msg
+        ("RECEIPT", hs, body) when header_is "receipt-id" rid hs ->
+          conn.c_expected_receipts <- S.remove rid conn.c_expected_receipts;
+          return { r_headers = hs; r_body = body }
+      | ("RECEIPT", hs, body) ->
+          Option.may
+            (fun id ->
+               if S.mem id conn.c_expected_receipts then
+                 Hashtbl.replace conn.c_pending_receipts id
+                   { r_headers = hs; r_body = body })
+            (try Some (List.assoc "receipt-id" hs) with Not_found -> None);
+          get_receipt msg conn rid
+      | t ->
+         error Reconnect (Protocol_error t) "Mq_stomp_client.%s: no RECEIPT received." msg
+
+  let check_receipt msg conn rid = get_receipt msg conn rid >>= fun receipt -> return ()
 
   let send_frame_with_receipt msg conn command hs body =
     check_closed msg conn >>= fun () ->
@@ -293,4 +314,14 @@ struct
 
   let transaction_commit_all = transaction_for_all transaction_commit
   let transaction_abort_all = transaction_for_all transaction_abort
+
+  let expect_receipt conn rid =
+    conn.c_expected_receipts <- S.add rid conn.c_expected_receipts
+
+  let receive_receipt conn rid =
+    try
+      let r = Hashtbl.find conn.c_pending_receipts rid in
+        Hashtbl.remove conn.c_pending_receipts rid;
+        return r
+    with Not_found -> get_receipt "receive_receipt" conn rid
 end
