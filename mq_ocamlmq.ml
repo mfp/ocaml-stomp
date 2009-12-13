@@ -5,17 +5,28 @@ struct
   open CONC
   include Mq_adapter_base.Make_STOMP(CONC)
 
-  let queue_size conn queue =
+  let control_msg_aux conn dest f field =
     let c = conn.c_conn in
     let rid = B.receipt_id () in
       B.expect_receipt c rid;
       B.send_no_ack c
         ~headers:["receipt", rid]
-        ~destination:("/control/count-msgs/queue/" ^ queue) "" >>= fun () ->
+        ~destination:("/control/" ^ dest) "" >>= fun () ->
       B.receive_receipt c rid >>= fun r ->
         try
-          return (Some (Int64.of_string (List.assoc "num-messages" r.B.r_headers)))
+          return (Some (f (List.assoc field r.B.r_headers)))
         with _ -> return None
+
+  let queue_size conn queue =
+    control_msg_aux conn ("count-msgs/queue/" ^ queue) Int64.of_string "num-messages"
+
+  let queue_subscribers conn queue =
+    control_msg_aux conn
+      ("count-subscribers/queue/" ^ queue) int_of_string "num-subscribers"
+
+  let topic_subscribers conn topic =
+    control_msg_aux conn
+      ("count-subscribers/topic/" ^ topic) int_of_string "num-subscribers"
 
   let timeout_headers =
     Option.map_default (fun timeout -> ["ack-timeout", string_of_float timeout]) []

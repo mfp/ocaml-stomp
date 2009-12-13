@@ -101,4 +101,6 @@ sig
   val unsubscribe_topic : connection -> string -> unit thread
 
   val queue_size : connection -> string -> Int64.t option thread
+  val queue_subscribers : connection -> string -> int option thread
+  val topic_subscribers : connection -> string -> int option thread
 end

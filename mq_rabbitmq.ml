@@ -136,4 +136,6 @@ struct
           return ()
 
   let queue_size conn queue = return None
+  let queue_subscribers conn queue = return None
+  let topic_subscribers conn topic = return None
 end
