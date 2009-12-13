@@ -20,6 +20,15 @@ struct
   let timeout_headers =
     Option.map_default (fun timeout -> ["ack-timeout", string_of_float timeout]) []
 
+  let prefetch_headers conn =
+    Option.map_default
+      (fun n -> ["prefetch", string_of_int n]) [] conn.c_prefetch
+
+  let subscribe_queue conn ?(auto_delete = false) queue =
+    subscribe_queue_aux
+      ~headers:(("ack", "client") :: prefetch_headers conn)
+      conn ~auto_delete queue
+
   let send conn ?transaction ?ack_timeout ~destination body =
     B.send conn.c_conn ?transaction
       ~headers:(timeout_headers ack_timeout)

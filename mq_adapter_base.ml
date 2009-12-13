@@ -58,9 +58,9 @@ struct
     B.send_no_ack conn.c_conn ?transaction
       ~destination:("/topic/" ^ destination) body
 
-  let subscribe_queue conn ?(auto_delete = false) queue =
+  let subscribe_queue_aux ~headers conn ~auto_delete queue =
     B.subscribe conn.c_conn
-      ~headers:["ack", "client"]
+      ~headers
       ("/queue/" ^ queue)
 
   let unsubscribe_queue conn queue = B.unsubscribe conn.c_conn ("/queue/" ^ queue)
