@@ -73,10 +73,7 @@ struct
     if S.mem topic conn.c_topics then return ()
     else
       let dst = "/topic/" ^ topic in
-      let prefetch =
-        Option.map (fun n -> ["prefetch", string_of_int n]) conn.c_prefetch
-      in
-        B.subscribe conn.c_conn ?headers:prefetch dst >>= fun () ->
+        B.subscribe conn.c_conn dst >>= fun () ->
         conn.c_topics <- S.add topic conn.c_topics;
         return ()
 
