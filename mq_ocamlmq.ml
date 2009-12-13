@@ -3,11 +3,10 @@
 module Make_STOMP(CONC : Mq_concurrency.THREAD) =
 struct
   open CONC
-  include Mq_activemq.Make_STOMP(CONC)
-  module B = Mq_stomp_client.Make_generic(CONC)
+  include Mq_adapter_base.Make_STOMP(CONC)
 
   let queue_size conn queue =
-    let c = get_stomp_connection conn in
+    let c = conn.c_conn in
     let rid = B.receipt_id () in
       B.expect_receipt c rid;
       B.send_no_ack c
@@ -22,12 +21,12 @@ struct
     Option.map_default (fun timeout -> ["ack-timeout", string_of_float timeout]) []
 
   let send conn ?transaction ?ack_timeout ~destination body =
-    B.send (get_stomp_connection conn) ?transaction
+    B.send conn.c_conn ?transaction
       ~headers:(timeout_headers ack_timeout)
       ~destination:("/queue/" ^ destination) body
 
   let send_no_ack conn ?transaction ?ack_timeout ~destination body =
-    B.send_no_ack (get_stomp_connection conn) ?transaction
+    B.send_no_ack conn.c_conn ?transaction
       ~headers:(timeout_headers ack_timeout)
       ~destination:("/queue/" ^ destination) body
 end

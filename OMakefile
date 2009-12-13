@@ -36,6 +36,7 @@ LIBOBJS[] =
 	mq_rabbitmq
 	mq_activemq
 	mq_ocamlmq
+	mq_adapter_base
 	mq_stomp_client
 
 OCamlLibrary(stomp, $(LIBOBJS))
