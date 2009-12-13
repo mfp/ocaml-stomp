@@ -323,5 +323,8 @@ struct
       let r = Hashtbl.find conn.c_pending_receipts rid in
         Hashtbl.remove conn.c_pending_receipts rid;
         return r
-    with Not_found -> get_receipt "receive_receipt" conn rid
+    with Not_found ->
+      catch
+        (fun () -> get_receipt "receive_receipt" conn rid)
+        (fun e -> Hashtbl.remove conn.c_pending_receipts rid; raise e)
 end

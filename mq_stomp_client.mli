@@ -21,7 +21,8 @@ sig
   (** [receive_receipt conn rid] blocks until a RECEIPT with the given
     * receipt-id is received. You must use [expect_receipt] before, or the
     * RECEIPT might be discarded (resulting in receive_receipt blocking
-    * forever). *)
+    * forever). If an error occurs, the RECEIPT will be discarded if received
+    * at any later point in time. (This is meant to prevent memleaks.) *)
   val receive_receipt : connection -> string -> receipt thread
 
   (** Return a unique receipt id. *)
