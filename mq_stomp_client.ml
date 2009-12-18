@@ -148,7 +148,7 @@ struct
     catch
       (fun () -> open_connection sockaddr)
       (function
-           Unix.Unix_error (Unix.ECONNREFUSED, _, _) ->
+           Unix.Unix_error (Unix.ECONNREFUSED, _, _) | Sys_error _ ->
              error Abort (Connection_error Connection_refused) msg
          | e -> fail e)
     >>= fun (c_in, c_out) ->
