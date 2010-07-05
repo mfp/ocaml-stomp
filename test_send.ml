@@ -32,7 +32,7 @@ let args =
   Arg.align
     [
       "-n", Set_int num_msgs, sprintf "N Send N messages (default: %d)" !num_msgs;
-      "-a", Set_string address, sprintf "ADDRESS Address (default: %s-0)" !address;
+      "-a", Set_string address, sprintf "ADDRESS Address (default: %s)" !address;
       "-p", Set_int port, sprintf "PORT Port (default: %d)" !port;
       "-q", Set_string queue, sprintf "QUEUE Send to queue QUEUE (default: %s)" !queue;
       "--persistent", Set persistent, " Set persistent: true.";
