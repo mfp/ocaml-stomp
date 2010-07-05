@@ -20,6 +20,7 @@ let verbose = ref false
 let readsubs = ref false
 let durable = ref false
 let headers = ref []
+let prefetch = ref 0
 
 let msg = "Usage: test_receive [options]"
 
@@ -33,6 +34,7 @@ let args =
       "-a", Set_string address, sprintf "ADDRESS Address (default: %s)" !address;
       "-p", Set_int port, sprintf "PORT Port (default: %d)" !port;
       "-s", String (fun s -> dests := s :: !dests), "NAME Subscribe to destination NAME.";
+      "--prefetch", Set_int prefetch, " Prefetch (default: disabled)";
       "--stdin", Set readsubs, " Read list of destinations to from stdin.";
       "--ack", Set ack, " Send ACKs for received messages.";
       "--durable", Set durable, " Create durable destinations in RabbitMQ.";
@@ -77,6 +79,10 @@ let () =
     if !durable then ["auto-delete", "false"; "durable", "true"] @ hs
     else hs in
   let hs = if !ack then ("ack", "client") :: hs else hs in
+  let hs = match !prefetch with
+      n when n > 0 -> ("prefetch", string_of_int n) :: hs
+    | _ -> hs
+  in
     Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> print_rate ()));
     printf "Subscribing to %d destination(s)... %!" (List.length subs);
     if !verbose then printf "\n";
