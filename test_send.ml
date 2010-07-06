@@ -86,7 +86,7 @@ let () =
               (Unix.ADDR_INET (Unix.inet_addr_of_string !address, !port))
     in try
       for i = 1 to n do
-        if !verbose && !cnt mod 11 = 0 then printf "\r%d%!" !cnt;
+        if !verbose && !cnt mod 11 = 0 then printf "%d      \r%!" !cnt;
         if !no_ack then
           S.send_no_ack c
             ~persistent ~headers ~destination:(queue_name i) (gen_payload i)
