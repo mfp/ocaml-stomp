@@ -108,6 +108,7 @@ let () =
             if !ack then S.ack_msg c msg;
             if !verbose && !cnt mod 11 = 0 then printf "%d       \r%!" !cnt;
         done;
+        S.disconnect c;
        with Exit -> ())
   in
     Sys.set_signal Sys.sigint
