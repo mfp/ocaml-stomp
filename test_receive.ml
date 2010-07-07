@@ -106,7 +106,7 @@ let () =
             payload := !payload + String.length msg.Mq.msg_body;
             if !cnt = 1 then t0 := Unix.gettimeofday ();
             if !ack then S.ack_msg c msg;
-            if !verbose && i mod 11 = 0 then printf "%d       \r%!" !cnt;
+            if !verbose && !cnt mod 11 = 0 then printf "%d       \r%!" !cnt;
         done;
        with Exit -> ())
   in
