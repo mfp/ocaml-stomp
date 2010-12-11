@@ -17,8 +17,6 @@ sig
   type in_channel
   type out_channel
   val open_connection : Unix.sockaddr -> (in_channel * out_channel) t
-  val open_in : string -> in_channel
-  val open_out : string -> out_channel
   val output_char : out_channel -> char -> unit t
   val output_string : out_channel -> string -> unit t
   val flush : out_channel -> unit t
