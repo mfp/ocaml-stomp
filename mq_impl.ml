@@ -161,21 +161,10 @@ struct
             catch (fun () -> M.unsubscribe_topic c s) (fun _ -> return ())
   end
 
-  let close x = x#disconnect
+  let make_tcp_mq ?prefetch ~login ~passcode addr port =
+    new simple_queue ?prefetch ~login ~passcode
+      (Unix.ADDR_INET (Unix.inet_addr_of_string addr, port))
 
-  let make_tcp_message_queue ?prefetch ~login ~passcode addr port =
-    let r =
-      new simple_queue ?prefetch ~login ~passcode
-        (Unix.ADDR_INET (Unix.inet_addr_of_string addr, port))
-        (* FIXME: should use ignore_result?
-         * doesn't really matter for Lwt, as we don't want an exception to be
-         * thrown if #disconnect fails anyway *)
-    in Gc.finalise (fun x -> ignore (close x)) r;
-       r
-
-  let make_unix_message_queue ?prefetch ~login ~passcode path =
-    let r = new simple_queue ?prefetch ~login ~passcode (Unix.ADDR_UNIX path) in
-      (* FIXME: use ignore_result? see above *)
-      Gc.finalise (fun x -> ignore (close x)) r;
-      r
+  let make_unix_mq ?prefetch ~login ~passcode path =
+    new simple_queue ?prefetch ~login ~passcode (Unix.ADDR_UNIX path)
 end

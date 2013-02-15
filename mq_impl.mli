@@ -86,15 +86,19 @@ module Make :
         method topic_subscribers : string -> int option M.thread
       end
 
-    (** Create message queue connected to a TCP socket. The connection will be
-      * closed automatically on GC if needed. *)
-    val make_tcp_message_queue :
+    (** Create message queue connected to a TCP socket.
+      *
+      * The caller is responsible for ensuring that the connection is closed.
+      * (with [#disconnect]). *)
+    val make_tcp_mq :
       ?prefetch:int ->
       login:string -> passcode:string -> string -> int -> simple_queue
 
-    (** Create message queue connected to a UNIX domain socket. The connection
-      * will be closed automatically on GC if needed. *)
-    val make_unix_message_queue :
+    (** Create message queue connected to a UNIX domain socket.
+      *
+      * The caller is responsible for ensuring that the connection is closed
+      * (with [#disconnect]). *)
+    val make_unix_mq :
       ?prefetch:int ->
       login:string -> passcode:string -> string -> simple_queue
   end
