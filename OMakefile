@@ -2,18 +2,18 @@
 # override in order to avoid "These file are targeted separately, but appear 
 # as effects of a single rule." warning.
 NATIVE_ENABLED = true
+BYTE_ENABLED   = true
+USE_OCAMLFIND  = true
+
+OCAMLFLAGS    = -g -thread -bin-annot -w +a-4-6-9-27..29-32..99 -warn-error +a-4-6-7-9-18-27..29-32..99
+OCAMLCFLAGS   =
+OCAMLOPTFLAGS =
 
 if $(not $(defined-env TEST))
        OCAMLFLAGS       += -g -dtypes
        OCAML_LINK_FLAGS += -g
        OCAMLOPTFLAGS    += -inline 10
        export
-
-BYTE_ENABLED = true
-
-USE_OCAMLFIND = true
-
-OCAMLFLAGS += -thread
 
 OCAMLPACKS[] =
 	lwt
