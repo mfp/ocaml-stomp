@@ -180,10 +180,13 @@ struct
     else
       catch
         (fun () ->
-           send_frame' "disconnect" conn "DISCONNECT" [] "" >>= fun () ->
-           close_in_noerr conn.c_in >>= fun () -> close_out_noerr conn.c_out >>= fun () ->
            conn.c_closed <- true;
-           return ())
+           catch
+             (fun () ->
+                send_frame' "disconnect" conn "DISCONNECT" [] "" >>= fun () ->
+                close_in_noerr conn.c_in >>= fun () -> close_out_noerr conn.c_out)
+             (fun _ ->
+                close_in_noerr conn.c_in >>= fun () -> close_out_noerr conn.c_out))
         (function
              (* if there's a connection error, such as the other end closing
               * before us, ignore it, as we wanted to close the conn anyway *)
