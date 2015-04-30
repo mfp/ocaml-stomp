@@ -5,7 +5,7 @@ NATIVE_ENABLED = true
 BYTE_ENABLED   = true
 USE_OCAMLFIND  = true
 
-OCAMLFLAGS    = -g -thread -bin-annot -w +a-4-6-9-27..29-32..99 -warn-error +a-4-6-7-9-18-27..29-32..99
+OCAMLFLAGS    = -g -thread -bin-annot -w +a-4-6-9-27..29-32..99 -warn-error -a
 OCAMLCFLAGS   =
 OCAMLOPTFLAGS =
 
